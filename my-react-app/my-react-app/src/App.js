@@ -1,124 +1,146 @@
-import React, { useState } from 'react';
-import { FaMicrophone, FaArrowLeft, FaVolumeUp } from 'react-icons/fa';
-import { Button } from '@mui/material';
+import React from 'react';
 import styled from 'styled-components';
-
+import useRecorder from './hooks/useRecorder';
 import LanguageSelector from './components/LanguageSelector';
-import useRecorder from './hooks/useRecorder';  // Import the useRecorder hook
+
+const languages = ['English', 'Tamil', 'Telugu', 'Kannada'];
 
 function App() {
-  const [detectedLanguage, setDetectedLanguage] = useState('');
-  const [availableLanguages] = useState(['English', 'Tamil', 'Telugu', 'Kannada']);
-  
-  const [audioURL, isRecording, startRecording, stopRecording] = useRecorder();  // Using the hook
+  const { isRecording, startRecording, stopRecording, audioUrl, audioBlob } = useRecorder();
 
-  const handleRecord = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
+  const uploadAudio = async () => {
+    if (!audioBlob) return; // Ensure there's audio to upload
+
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.wav'); // Append the audio blob
+
+    try {
+      const response = await fetch('YOUR_BACKEND_URL/api/language-detection', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Language Detection Result:', data);
+        // Handle response from backend (e.g., show detected language)
+      } else {
+        console.error('Error uploading audio:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error uploading audio:', error);
     }
   };
 
   return (
     <AppContainer>
-      <Header>
-        <FaArrowLeft />
-        <Title>Patient</Title>
-      </Header>
-      
-      <MainContent>
-        <MicrophoneContainer onClick={handleRecord}>
-          <FaMicrophone size={100} style={{ color: isRecording ? 'red' : 'black' }} />
-          <p>{isRecording ? 'Recording...' : 'Tap to speak'}</p>
-        </MicrophoneContainer>
+      <Title>Patient</Title>
 
-        {audioURL && (
-          <audio controls>
-            <source src={audioURL} type="audio/webm" />
-            Your browser does not support the audio element.
-          </audio>
-        )}
+      <MicrophoneContainer>
+        <MicrophoneIcon onClick={isRecording ? stopRecording : startRecording}>
+          🎤
+        </MicrophoneIcon>
+        <RecordingText>{isRecording ? 'Recording...' : 'Tap To Speak'}</RecordingText>
+      </MicrophoneContainer>
 
-        <ButtonContainer>
-          <StyledButton variant="contained" color="primary">Transcribe</StyledButton>
-          <StyledButton variant="contained" color="primary">Detect Language</StyledButton>
-        </ButtonContainer>
+      <Button onClick={uploadAudio}>Detect Language</Button> {/* Trigger upload here */}
 
-        <DetectedLanguage>
-          {detectedLanguage ? `Language Detected: ${detectedLanguage}` : 'Detect Language First'}
-        </DetectedLanguage>
+      <DetectedLanguage>Language Detected: Hindi</DetectedLanguage>
 
-        <LanguageSelector languages={availableLanguages} />
+      <LanguageSelector languages={languages} />
 
-        <StyledButton variant="contained" color="primary">Translate</StyledButton>
-      </MainContent>
-
-      <Footer>
-        <FaVolumeUp size={30} />
-      </Footer>
+      {audioUrl && (
+        <AudioPlayer controls>
+          <source src={audioUrl} type="audio/wav" />
+          Your browser does not support the audio element.
+        </AudioPlayer>
+      )}
     </AppContainer>
   );
 }
 
-// Styled components for layout
+// Styled Components for Responsive Design
 const AppContainer = styled.div`
-  font-family: 'Roboto', sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  height: 100vh;
-  justify-content: space-between;
-`;
 
-const Header = styled.div`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 10px;
+  @media (min-width: 1024px) {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px;
+  }
 `;
 
 const Title = styled.h1`
-  flex-grow: 1;
-  text-align: center;
-`;
+  font-size: 2rem;
+  margin-bottom: 20px;
 
-const MainContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
+  @media (min-width: 1024px) {
+    font-size: 2.5rem;
+  }
 `;
 
 const MicrophoneContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-bottom: 30px;
+`;
+
+const MicrophoneIcon = styled.div`
+  font-size: 4rem;
   cursor: pointer;
+
+  @media (min-width: 1024px) {
+    font-size: 6rem;
+  }
 `;
 
-const ButtonContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+const RecordingText = styled.p`
+  margin-top: 10px;
+  font-size: 1rem;
+
+  @media (min-width: 1024px) {
+    font-size: 1.2rem;
+  }
 `;
 
-const StyledButton = styled(Button)`
-  width: 250px;
+const Button = styled.button`
+  background-color: #007BFF;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin: 10px 0;
+  font-size: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+
+  @media (min-width: 1024px) {
+    width: 300px;
+    padding: 15px;
+    font-size: 1.2rem;
+  }
 `;
 
 const DetectedLanguage = styled.p`
-  font-size: 16px;
-  color: gray;
+  font-size: 1rem;
+  margin: 20px 0;
+
+  @media (min-width: 1024px) {
+    font-size: 1.2rem;
+  }
 `;
 
-const Footer = styled.div`
-  display: flex;
-  justify-content: flex-end;
+const AudioPlayer = styled.audio`
+  margin-top: 20px;
   width: 100%;
-  padding: 10px;
+  max-width: 400px;
 `;
 
 export default App;

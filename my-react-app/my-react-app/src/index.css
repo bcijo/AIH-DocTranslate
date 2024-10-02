@@ -1,13 +1,31 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* index.css */
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* For desktop screens */
+@media only screen and (min-width: 1024px) {
+  body {
+    font-size: 18px;
+    padding: 20px;
+    margin: 0 auto;
+    max-width: 1200px; /* Set max-width so it doesn't stretch too much */
+  }
+
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+
+  .language-selector {
+    max-width: 600px;
+    margin: 20px auto;
+  }
+
+  /* Ensure the buttons are spaced out more for desktop */
+  button {
+    width: 300px;
+    height: 50px;
+    margin: 15px 0;
+  }
 }
