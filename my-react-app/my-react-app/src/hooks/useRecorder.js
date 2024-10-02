@@ -1,47 +1,58 @@
 import { useState, useEffect } from 'react';
 
-function useRecorder() {
-  const [recorder, setRecorder] = useState(null);
-  const [audioURL, setAudioURL] = useState('');
+const useRecorder = () => {
   const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null); // State to store the audio URL
 
   useEffect(() => {
-    if (recorder === null) {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices
-          .getUserMedia({ audio: true })
-          .then((stream) => {
-            const newRecorder = new MediaRecorder(stream);
-            setRecorder(newRecorder);
-          });
-      }
+    // Check for the browser's mediaDevices support
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      console.log("MediaDevices supported.");
+    } else {
+      console.warn("MediaDevices not supported.");
     }
-  }, [recorder]);
+
+    return () => {
+      // Clean up the audio URL when the component is unmounted or updated
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
 
   const startRecording = () => {
-    if (recorder && recorder.state === 'inactive') {
-      recorder.start();
-      setIsRecording(true);
-    }
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        const recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = (event) => {
+          const audioBlob = event.data;
+          const url = URL.createObjectURL(audioBlob); // Create a URL for the recorded audio
+          setAudioUrl(url); // Set the audio URL state
+          console.log("Recording finished:", url);
+        };
+        recorder.start();
+        setMediaRecorder(recorder);
+        setIsRecording(true);
+      })
+      .catch(error => {
+        console.error("Error accessing microphone:", error);
+      });
   };
 
   const stopRecording = () => {
-    if (recorder && recorder.state === 'recording') {
-      recorder.stop();
+    if (mediaRecorder) {
+      mediaRecorder.stop();
       setIsRecording(false);
     }
   };
 
-  useEffect(() => {
-    if (recorder) {
-      recorder.ondataavailable = (e) => {
-        const url = URL.createObjectURL(e.data);
-        setAudioURL(url);
-      };
-    }
-  }, [recorder]);
-
-  return [audioURL, isRecording, startRecording, stopRecording];
-}
+  return {
+    isRecording,
+    startRecording,
+    stopRecording,
+    audioUrl // Return the audio URL
+  };
+};
 
 export default useRecorder;
