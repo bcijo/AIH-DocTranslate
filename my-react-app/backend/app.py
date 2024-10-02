@@ -7,9 +7,15 @@ app = Flask(__name__)
 # Load the Whisper model
 model = whisper.load_model("base")
 
+@app.route('/')
+def home():
+    return "Welcome to the Language Detection API! Use the /api/language-detection endpoint to send audio files."
+
 @app.route('/api/language-detection', methods=['POST'])
 def detect_language():
     # Check if the post request has the file part
+    breakpoint()
+    print("entered breakpoint here")
     if 'audio' not in request.files:
         return jsonify({'error': 'No audio file provided'}), 400
     

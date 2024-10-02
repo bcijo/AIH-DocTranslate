@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import useRecorder from './hooks/useRecorder';
 import LanguageSelector from './components/LanguageSelector';
@@ -7,6 +7,7 @@ const languages = ['English', 'Tamil', 'Telugu', 'Kannada'];
 
 function App() {
   const { isRecording, startRecording, stopRecording, audioUrl, audioBlob } = useRecorder();
+  const [detectedLanguage, setDetectedLanguage] = useState(''); // State to hold detected language
 
   const uploadAudio = async () => {
     if (!audioBlob) return; // Ensure there's audio to upload
@@ -15,15 +16,15 @@ function App() {
     formData.append('audio', audioBlob, 'recording.wav'); // Append the audio blob
 
     try {
-      const response = await fetch('YOUR_BACKEND_URL/api/language-detection', {
+      const response = await fetch('http://127.0.0.1:5000/api/language-detection', {
         method: 'POST',
         body: formData,
       });
-
+      
       if (response.ok) {
         const data = await response.json();
         console.log('Language Detection Result:', data);
-        // Handle response from backend (e.g., show detected language)
+        setDetectedLanguage(data.detected_language || 'Language not detected'); // Update state with detected language
       } else {
         console.error('Error uploading audio:', response.statusText);
       }
@@ -45,7 +46,7 @@ function App() {
 
       <Button onClick={uploadAudio}>Detect Language</Button> {/* Trigger upload here */}
 
-      <DetectedLanguage>Language Detected: Hindi</DetectedLanguage>
+      <DetectedLanguage>Language Detected: {detectedLanguage || 'None'}</DetectedLanguage> {/* Show detected language */}
 
       <LanguageSelector languages={languages} />
 
