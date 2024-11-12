@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-// import styled from 'styled-components';
 import { signOut } from 'firebase/auth';
 import { auth } from './config/firebaseConfig';
 import { AuthProvider, useAuth } from './hooks/AuthProvider';
 import Login from './components/Login';
+import Signup from './components/SignUp';
 import DoctorHomePage from './pages/doctor/home';
 import PatientHomePage from './pages/patient/home';
 
-// Main App component
 function App() {
   const { user } = useAuth(); // Get the current authenticated user
   const [error, setError] = useState('');
+  const [showSignup, setShowSignup] = useState(false); // State to toggle between Login and Signup
 
   // Debugging: Log the user object and role
   useEffect(() => {
@@ -28,9 +28,29 @@ function App() {
     });
   };
 
-  // If no user is logged in, show the Login page
+  // If no user is logged in, show the Login or Signup page
   if (!user) {
-    return <Login />;
+    return (
+      <div>
+        {showSignup ? (
+          <>
+            <Signup />
+            <p>
+              Already have an account?{' '}
+              <button onClick={() => setShowSignup(false)}>Login</button>
+            </p>
+          </>
+        ) : (
+          <>
+            <Login />
+            <p>
+              Don't have an account?{' '}
+              <button onClick={() => setShowSignup(true)}>Sign Up</button>
+            </p>
+          </>
+        )}
+      </div>
+    );
   }
 
   // If the role is not found, show an error message and allow user to go back to login

@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { auth } from "../config/firebaseConfig";
+import { auth, db } from "../config/firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
-import { getDoc, doc } from "firebase/firestore"; // Import Firebase Firestore functions
-import { db } from "../config/firebaseConfig"; // Assuming you have initialized Firestore
+import { doc, getDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -11,28 +10,25 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);  // To hold the user object and role
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        // If a user is logged in, fetch their role from Firestore
         try {
-          const userDocRef = doc(db, "users", currentUser.uid);  // Assuming user role is stored in Firestore in a 'users' collection
+          const userDocRef = doc(db, "users", currentUser.uid);
           const userDoc = await getDoc(userDocRef);
+
           if (userDoc.exists()) {
-            // Set user role from Firestore data
-            setUser({ ...currentUser, role: userDoc.data().role });
+            setUser({ ...currentUser, role: userDoc.data().role, email: userDoc.data().email });
           } else {
-            setUser({ ...currentUser, role: null }); // In case no role is found
+            setUser(currentUser);
           }
         } catch (error) {
-          console.error("Error fetching user role:", error);
-          setUser({ ...currentUser, role: null });
+          console.error("Error fetching user data:", error);
         }
       } else {
-        // No user is logged in
         setUser(null);
       }
       setLoading(false);
@@ -43,7 +39,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    loading
+    loading,
   };
 
   return (
