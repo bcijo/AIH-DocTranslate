@@ -1,29 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import useRecorder from './hooks/useRecorder';
 import LanguageSelector from './components/LanguageSelector';
+import { AuthProvider, useAuth } from './hooks/AuthProvider';
+import Login from './components/Login';
+import UserProfile from './components/UserProfile';
 
 const languages = ['English', 'Tamil', 'Telugu', 'Kannada'];
 
-function App() {
+function MainApp() {
   const { isRecording, startRecording, stopRecording, audioUrl, audioBlob } = useRecorder();
+  const [detectedLanguage, setDetectedLanguage] = useState('');
+  const { user } = useAuth(); // Move this inside MainApp
 
   const uploadAudio = async () => {
-    if (!audioBlob) return; // Ensure there's audio to upload
+    if (!audioBlob) return;
 
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.wav'); // Append the audio blob
+    formData.append('audio', audioBlob, 'recording.wav');
 
     try {
-      const response = await fetch('YOUR_BACKEND_URL/api/language-detection', {
+      const response = await fetch('http://127.0.0.1:5000/api/language-detection', {
         method: 'POST',
         body: formData,
       });
-
+      
       if (response.ok) {
         const data = await response.json();
         console.log('Language Detection Result:', data);
-        // Handle response from backend (e.g., show detected language)
+        setDetectedLanguage(data.detected_language || 'Language not detected');
       } else {
         console.error('Error uploading audio:', response.statusText);
       }
@@ -32,21 +37,29 @@ function App() {
     }
   };
 
+  // If no user, return Login component
+  if (!user) {
+    return <Login />;
+  }
+
   return (
     <AppContainer>
+      <Header>
+        <Title>
+          Patient
+        </Title>
+        <UserProfile />
+      </Header>
       <Title>Patient</Title>
-
       <MicrophoneContainer>
         <MicrophoneIcon onClick={isRecording ? stopRecording : startRecording}>
-          🎤
+          <span role="img" aria-label='microphone'>🎤</span>
         </MicrophoneIcon>
         <RecordingText>{isRecording ? 'Recording...' : 'Tap To Speak'}</RecordingText>
       </MicrophoneContainer>
 
-      <Button onClick={uploadAudio}>Detect Language</Button> {/* Trigger upload here */}
-
-      <DetectedLanguage>Language Detected: Hindi</DetectedLanguage>
-
+      <Button onClick={uploadAudio}>Detect Language</Button>
+      <DetectedLanguage>Language Detected: {detectedLanguage || 'None'}</DetectedLanguage>
       <LanguageSelector languages={languages} />
 
       {audioUrl && (
@@ -59,17 +72,40 @@ function App() {
   );
 }
 
+// Main App component
+function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+}
+
 // Styled Components for Responsive Design
+const Header = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  @media (min-width: 1024px) {
+    padding: 20px 40px;
+  }
+`;
+
 const AppContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  min-height: 100vh;
+  background-color: #f5f5f5;
 
   @media (min-width: 1024px) {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 40px;
+    padding: 0;
   }
 `;
 
