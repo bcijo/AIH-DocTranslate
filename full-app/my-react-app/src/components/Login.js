@@ -13,14 +13,21 @@ const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState(''); // Track selected role
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
+    if (!role) {
+      setError('Please select a role (Doctor or Patient).');
+      return;
+    }
+
     try {
       if (isSignUp) {
+        // You can add role to user data here if needed
         await createUserWithEmailAndPassword(auth, email, password);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
@@ -73,6 +80,19 @@ const Login = () => {
               placeholder="Enter your password"
               required
             />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Role</Label>
+            <Select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              required
+            >
+              <option value="">Select Role</option>
+              <option value="Doctor">Doctor</option>
+              <option value="Patient">Patient</option>
+            </Select>
           </InputGroup>
 
           <Button type="submit">
@@ -159,6 +179,19 @@ const Input = styled.input`
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s;
+
+  &:focus {
+    border-color: #007bff;
+    outline: none;
+  }
+`;
+
+const Select = styled.select`
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
 
   &:focus {
     border-color: #007bff;
