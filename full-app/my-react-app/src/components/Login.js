@@ -184,6 +184,8 @@ const Button = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  width: 100%;
+  text-align: center;
 
   &:hover {
     background-color: #0056b3;
