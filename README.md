@@ -20,7 +20,7 @@ Make sure you have the following tools installed on your system:
 Clone the repository to your local machine:
 
 ```bash
-git clone <repository_url>
+git clone https://github.com/bcijo/AIH-DocTranslate.git
 cd full-app
 ```
 
@@ -29,26 +29,26 @@ cd full-app
 ### Install npm dependencies
 Navigate to the `my-react-app` folder: 
 
-```
+```bash
 cd my-react-app
 ```
 
 Then, install the necessary npm packages:
-```
+```bash
 npm install
 ```
 
 ### Set up Firebase
 
 1. Install Firebase CLI globally if you haven't already:
-```
+```bash
 npm install firebase
 ```
 
 ### Run the FrontEnd
 
 Once Firebase is set up and dependencies are installed, you can run the frontend app inside `my-react-app`:
-```
+```bash
 npm start
 ```
 
@@ -59,12 +59,12 @@ This will start the React development server and you can access the app at `http
 ### nstall Python dependencies
 
 Navigate to the `backend` folder:
-```
+```bash
 cd ../backend
 ```
 
 Create a virtual environment (optional but recommended):
-```
+```bash
 python -m venv venv
 ```
 
@@ -83,7 +83,7 @@ Install the required Python packages:
 
 To start the Flask server, run:
 
-```
+```bash
 flask run
 ```
 
