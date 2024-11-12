@@ -1,25 +1,26 @@
 // src/components/Login.js
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { auth } from '../config/firebaseConfig';
+import { auth, db } from '../config/firebaseConfig';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider
 } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore'; // Import Firestore functions
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState(''); // Track selected role
+  const [role, setRole] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (!role) {
       setError('Please select a role (Doctor or Patient).');
       return;
@@ -27,18 +28,31 @@ const Login = () => {
 
     try {
       if (isSignUp) {
-        // You can add role to user data here if needed
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+    
+        // Attempt to save user data to Firestore
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            role: role
+          });
+          console.log("User data saved to Firestore successfully!");
+        } catch (firestoreError) {
+          console.error("Error writing document to Firestore:", firestoreError);
+          setError("Failed to save user data. Please try again.");
+        }
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (error) {
       setError(error.message);
+      console.error("Error in authentication:", error);
     }
+    
   };
 
   const handleGoogleSignIn = async () => {
-    // Check if role is selected before allowing Google sign-in
     if (!role) {
       setError('Please select a role first');
       return;
@@ -46,7 +60,18 @@ const Login = () => {
 
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user data already exists in Firestore
+      const userDoc = doc(db, 'users', user.uid);
+      const userSnapshot = await getDoc(userDoc);
+      if (!userSnapshot.exists()) {
+        await setDoc(userDoc, {
+          email: user.email,
+          role: role
+        });
+      }
     } catch (error) {
       setError(error.message);
     }

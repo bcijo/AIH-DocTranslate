@@ -3,20 +3,22 @@ import { signOut } from 'firebase/auth';
 import { auth } from './config/firebaseConfig';
 import { AuthProvider, useAuth } from './hooks/AuthProvider';
 import Login from './components/Login';
-import Signup from './components/SignUp';
 import DoctorHomePage from './pages/doctor/home';
 import PatientHomePage from './pages/patient/home';
 
 function App() {
   const { user } = useAuth(); // Get the current authenticated user
   const [error, setError] = useState('');
-  const [showSignup, setShowSignup] = useState(false); // State to toggle between Login and Signup
 
   // Debugging: Log the user object and role
   useEffect(() => {
-    console.log('Current user:', user);
-    if (user && !user.role) {
-      setError('User role is missing.');
+    if (user) {
+      console.log('Current user:', user);
+      if (user.role) {
+        console.log("User role:", user.role);
+      } else {
+        setError('User role is missing.');
+      }
     }
   }, [user]);
 
@@ -28,29 +30,9 @@ function App() {
     });
   };
 
-  // If no user is logged in, show the Login or Signup page
+  // If no user is logged in, show the Login page
   if (!user) {
-    return (
-      <div>
-        {showSignup ? (
-          <>
-            <Signup />
-            <p>
-              Already have an account?{' '}
-              <button onClick={() => setShowSignup(false)}>Login</button>
-            </p>
-          </>
-        ) : (
-          <>
-            <Login />
-            <p>
-              Don't have an account?{' '}
-              <button onClick={() => setShowSignup(true)}>Sign Up</button>
-            </p>
-          </>
-        )}
-      </div>
-    );
+    return <Login />;
   }
 
   // If the role is not found, show an error message and allow user to go back to login
@@ -65,11 +47,11 @@ function App() {
   }
 
   // Based on the user role, redirect to the appropriate homepage
-  if (user.role === 'doctor') {
+  if (user.role === 'Doctor') {
     return <DoctorHomePage />; // Redirect to Doctor's HomePage
   }
 
-  if (user.role === 'patient') {
+  if (user.role === 'Patient') {
     return <PatientHomePage />; // Redirect to Patient's HomePage
   }
 
