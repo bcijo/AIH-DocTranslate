@@ -1,84 +1,111 @@
 from flask import Flask, request, jsonify
-import pyttsx3
+import whisper
+import os
+import google.generativeai as genai
+import textwrap
 from googletrans import Translator
-from transformers import pipeline  # For summarization
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
-# Initialize text-to-speech engine
-engine = pyttsx3.init()
+whisper_model = whisper.load_model("base")
 
-# Map languages to pyttsx3 voice IDs
-language_map = {
-    'telugu': 'te',  # Telugu voice tag
-    'kannada': 'kn',  # Kannada voice tag
-    'tamil': 'ta',  # Tamil voice tag
-    'malayalam': 'ml',  # Malayalam voice tag
-    'hindi': 'hi'  # Hindi voice tag
-}
+translator = Translator()
+# Configure Google API for summarization (ensure you've set your API key)
+GOOGLE_API_KEY = "AIzaSyAv97r8UIiqrNZjPVUUpMN7kDxqC1nEx7A"
+genai.configure(api_key=GOOGLE_API_KEY)
 
-# Summarization model
-summarizer = pipeline("summarization")
+# Summarization function using Gemini
+def summarize_text(input_text):
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    response = model.generate_content(f"Summarize the following text: {input_text}")
+    return response.text
 
-def speak_text(text, language):
-    voices = engine.getProperty('voices')
-    selected_voice = None
+@app.route('/')
+def home():
+    """
+    Home route to display a welcome message and usage information.
+    """
+    return "Welcome to the Language Detection and Summarization API! Use the /api/language-detection and /api/summarize endpoints."
 
-    # Find the appropriate voice for the language
-    for voice in voices:
-        if language_map.get(language, '') in voice.languages:
-            selected_voice = voice.id
-            break
+@app.route('/api/language-detection', methods=['POST'])
+def detect_language():
+    """
+    Endpoint to detect the language of an audio file uploaded via POST request.
+    """
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No audio file provided'}), 400
+    
+    file = request.files['audio']
+    if file.filename == '':
+        return jsonify({'error': 'No audio file selected'}), 400
 
-    if selected_voice:
-        engine.setProperty('voice', selected_voice)
-    else:
-        engine.setProperty('voice', voices[0].id)  # Fallback to the first voice
+    temp_dir = 'temp'
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+    
+    temp_file_path = os.path.join(temp_dir, file.filename)
+    file.save(temp_file_path)
 
-    engine.setProperty('rate', 150)  # Set speech rate
-    engine.say(text)
-    engine.runAndWait()
-
-def translate_text(text, target_lang):
-    translator = Translator()
-    translation = translator.translate(text, dest=target_lang)
-    return translation.text
-
-def summarize_text(text):
-    summary = summarizer(text, max_length=150, min_length=50, do_sample=False)
-    return summary[0]['summary_text']
-
-@app.route('/api/speak', methods=['POST'])
-def speak():
-    data = request.json
-    text = data['text']
-    language = data['language']
     try:
-        speak_text(text, language)
-        return jsonify({"message": "Speech generated successfully!"}), 200
+        # Load audio and pad/trim it to fit 30 seconds
+        audio = whisper.load_audio(temp_file_path)
+        audio = whisper.pad_or_trim(audio)
+
+        # Create log-Mel spectrogram and move to the same device as the model
+        mel = whisper.log_mel_spectrogram(audio).to(whisper_model.device)
+
+        # Detect the spoken language
+        _, probs = whisper_model.detect_language(mel)
+        detected_language = max(probs, key=probs.get)
+
+        return jsonify({'detected_language': detected_language})
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
+
+    finally:
+        # Clean up the temporary file
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
 @app.route('/api/translate', methods=['POST'])
-def translate():
-    data = request.json
-    text = data['text']
-    target_lang = data['target_lang']
+def translate_text():
+    """
+    Endpoint to translate text using Google Translate.
+    """
+    if not request.json or 'text' not in request.json or 'target_lang' not in request.json:
+        return jsonify({'error': 'Invalid request'}), 400
+
+    text = request.json['text']
+    target_lang = request.json['target_lang']
+
     try:
-        translated_text = translate_text(text, target_lang)
-        return jsonify({"translated_text": translated_text}), 200
+        translated = translator.translate(text, dest=target_lang)
+        return jsonify({'translated_text': translated.text})
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/summarize', methods=['POST'])
 def summarize():
-    data = request.json
-    text = data['text']
+    """
+    Endpoint to summarize text using the Gemini model.
+    """
+    if not request.json or 'text' not in request.json:
+        return jsonify({'error': 'No text provided for summarization'}), 400
+    
+    input_text = request.json['text']
+    
     try:
-        summary = summarize_text(text)
-        return jsonify({"summary": summary}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        summary = summarize_text(input_text)
+        return jsonify({'summary': summary})
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    # Run the Flask app
+    app.run(debug=True, port=5000)

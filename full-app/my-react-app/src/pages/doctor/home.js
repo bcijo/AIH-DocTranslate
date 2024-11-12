@@ -1,23 +1,34 @@
 // src/pages/doctor/home.js
 import React from 'react';
-import { Link } from 'react-router-dom';
-import UserProfile from '../../components/UserProfile'; // Import UserProfile component
+import { Link, Route, Routes } from 'react-router-dom';
+import UserProfile from '../../components/UserProfile';
+import Patient from './patients'; // Import the Patient component
 
 const DoctorHomePage = () => {
     return (
-        <div>
-            <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <Link to="/doctor/home">Home</Link>
-                    <Link to="/doctor/patients">Patients</Link>
-                    <Link to="/doctor/appointments">Appointments</Link>
-                </div>
-                <UserProfile /> {/* Add UserProfile component for logout */}
+        <div style={{ backgroundColor: '#F5F5DC', padding: '20px', minHeight: '100vh' }}>
+            <nav style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <Link to="/doctor/home" style={{ color: '#E07B39' }}>Home</Link>
+                <Link to="/doctor/patients" style={{ color: '#E07B39' }}>Patients</Link>
+                <Link to="/doctor/appointments" style={{ color: '#E07B39' }}>Appointments</Link>
             </nav>
+            
+            <UserProfile />
 
-            <h1>Welcome, Doctor</h1>
-            <p>This is your dashboard where you can manage your appointments and view patient information.</p>
-            {/* Add additional content or widgets here */}
+            <Routes>
+                <Route
+                    path="/doctor/home"
+                    element={
+                        <div>
+                            <h1 style={{ color: '#DCE4C9' }}>Welcome, Doctor</h1>
+                            <p style={{ color: '#B6A28E' }}>
+                                This is your dashboard where you can manage appointments and view patient information.
+                            </p>
+                        </div>
+                    }
+                />
+                <Route path="/doctor/patients" element={<Patient />} />
+            </Routes>
         </div>
     );
 };

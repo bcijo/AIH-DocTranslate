@@ -8,7 +8,7 @@ function Patient() {
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [recognitionActive, setRecognitionActive] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('telugu');
+  const [selectedLanguage, setSelectedLanguage] = useState('english');
   const [synth, setSynth] = useState(window.speechSynthesis);
   const [utterance, setUtterance] = useState(null);
 
@@ -38,7 +38,7 @@ function Patient() {
       setLoading(true);
       const response = await axios.post('http://localhost:5000/api/translate', {
         text: summary,
-        target_lang: selectedLanguage,
+        target_lang: 'en',
       });
       setTranslatedText(response.data.translated_text);
     } catch (error) {
@@ -119,7 +119,7 @@ function Patient() {
 
   return (
     <div style={containerStyle}>
-      <h2>Patient Translator & Summarizer</h2>
+      <h2>Doctor Translator & Summarizer</h2>
       <textarea
         placeholder="Enter text here..."
         value={inputText}
@@ -152,16 +152,7 @@ function Patient() {
           Translate
         </button>
       </div>
-      <div>
-        <label htmlFor="languageSelect">Select Language:</label>
-        <select id="languageSelect" value={selectedLanguage} onChange={handleLanguageChange}>
-          <option value="telugu">Telugu</option>
-          <option value="kannada">Kannada</option>
-          <option value="tamil">Tamil</option>
-          <option value="malayalam">Malayalam</option>
-          <option value="hindi">Hindi</option>
-        </select>
-      </div>
+      
       {summary && <p>Summary: {summary}</p>}
       {translatedText && <p>Translated Text: {translatedText}</p>}
     </div>
