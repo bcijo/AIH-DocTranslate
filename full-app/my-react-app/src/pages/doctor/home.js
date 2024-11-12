@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Home = () => {
+const DoctorHomePage = () => {
     return (
         <div>
             <nav style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
@@ -17,4 +17,4 @@ const Home = () => {
     );
 };
 
-export default Home;
+export default DoctorHomePage;
