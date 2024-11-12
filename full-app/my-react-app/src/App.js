@@ -1,182 +1,74 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import useRecorder from './hooks/useRecorder';
-import LanguageSelector from './components/LanguageSelector';
+import React, { useState, useEffect } from 'react';
+import { signOut } from 'firebase/auth';
+import { auth } from './config/firebaseConfig';
 import { AuthProvider, useAuth } from './hooks/AuthProvider';
 import Login from './components/Login';
-import UserProfile from './components/UserProfile';
+import DoctorHomePage from './pages/doctor/home';
+import PatientHomePage from './pages/patient/home';
 
-const languages = ['English', 'Tamil', 'Telugu', 'Kannada'];
+function App() {
+  const { user } = useAuth(); // Get the current authenticated user
+  const [error, setError] = useState('');
 
-function MainApp() {
-  const { isRecording, startRecording, stopRecording, audioUrl, audioBlob } = useRecorder();
-  const [detectedLanguage, setDetectedLanguage] = useState('');
-  const { user } = useAuth(); // Move this inside MainApp
-
-  const uploadAudio = async () => {
-    if (!audioBlob) return;
-
-    const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.wav');
-
-    try {
-      const response = await fetch('http://127.0.0.1:5000/api/language-detection', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Language Detection Result:', data);
-        setDetectedLanguage(data.detected_language || 'Language not detected');
+  // Debugging: Log the user object and role
+  useEffect(() => {
+    if (user) {
+      console.log('Current user:', user);
+      if (user.role) {
+        console.log("User role:", user.role);
       } else {
-        console.error('Error uploading audio:', response.statusText);
+        setError('User role is missing.');
       }
-    } catch (error) {
-      console.error('Error uploading audio:', error);
     }
+  }, [user]);
+
+  // Handle logout and redirect to login page
+  const handleLogout = () => {
+    signOut(auth).catch((error) => {
+      console.error('Error signing out:', error);
+      setError('Failed to log out. Please try again.');
+    });
   };
 
-  // If no user, return Login component
+  // If no user is logged in, show the Login page
   if (!user) {
     return <Login />;
   }
 
+  // If the role is not found, show an error message and allow user to go back to login
+  if (!user.role) {
+    return (
+      <div>
+        <h1>Role not found</h1>
+        <button onClick={handleLogout}>Go Back to Login</button>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+      </div>
+    );
+  }
+
+  // Based on the user role, redirect to the appropriate homepage
+  if (user.role === 'Doctor') {
+    return <DoctorHomePage />; // Redirect to Doctor's HomePage
+  }
+
+  if (user.role === 'Patient') {
+    return <PatientHomePage />; // Redirect to Patient's HomePage
+  }
+
+  // Default return if no valid role is found
   return (
-    <AppContainer>
-      <Header>
-        <Title>
-          Patient
-        </Title>
-        <UserProfile />
-      </Header>
-      <Title>Patient</Title>
-      <MicrophoneContainer>
-        <MicrophoneIcon onClick={isRecording ? stopRecording : startRecording}>
-          <span role="img" aria-label='microphone'>🎤</span>
-        </MicrophoneIcon>
-        <RecordingText>{isRecording ? 'Recording...' : 'Tap To Speak'}</RecordingText>
-      </MicrophoneContainer>
-
-      <Button onClick={uploadAudio}>Detect Language</Button>
-      <DetectedLanguage>Language Detected: {detectedLanguage || 'None'}</DetectedLanguage>
-      <LanguageSelector languages={languages} />
-
-      {audioUrl && (
-        <AudioPlayer controls>
-          <source src={audioUrl} type="audio/wav" />
-          Your browser does not support the audio element.
-        </AudioPlayer>
-      )}
-    </AppContainer>
+    <div>
+      <h1>Role not found. Please contact support.</h1>
+      <button onClick={handleLogout}>Go Back to Login</button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+    </div>
   );
 }
 
-// Main App component
-function App() {
+export default function AppWrapper() {
   return (
     <AuthProvider>
-      <MainApp />
+      <App />
     </AuthProvider>
   );
 }
-
-// Styled Components for Responsive Design
-const Header = styled.div`
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 10px 20px;
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-  @media (min-width: 1024px) {
-    padding: 20px 40px;
-  }
-`;
-
-const AppContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-
-  @media (min-width: 1024px) {
-    padding: 0;
-  }
-`;
-
-const Title = styled.h1`
-  font-size: 2rem;
-  margin-bottom: 20px;
-
-  @media (min-width: 1024px) {
-    font-size: 2.5rem;
-  }
-`;
-
-const MicrophoneContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 30px;
-`;
-
-const MicrophoneIcon = styled.div`
-  font-size: 4rem;
-  cursor: pointer;
-
-  @media (min-width: 1024px) {
-    font-size: 6rem;
-  }
-`;
-
-const RecordingText = styled.p`
-  margin-top: 10px;
-  font-size: 1rem;
-
-  @media (min-width: 1024px) {
-    font-size: 1.2rem;
-  }
-`;
-
-const Button = styled.button`
-  background-color: #007BFF;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  margin: 10px 0;
-  font-size: 1rem;
-  border-radius: 5px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-
-  @media (min-width: 1024px) {
-    width: 300px;
-    padding: 15px;
-    font-size: 1.2rem;
-  }
-`;
-
-const DetectedLanguage = styled.p`
-  font-size: 1rem;
-  margin: 20px 0;
-
-  @media (min-width: 1024px) {
-    font-size: 1.2rem;
-  }
-`;
-
-const AudioPlayer = styled.audio`
-  margin-top: 20px;
-  width: 100%;
-  max-width: 400px;
-`;
-
-export default App;
