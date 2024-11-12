@@ -1,5 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore"; // Import Firestore
 
 const firebaseConfig = {
   apiKey: "AIzaSyBkh2cHZtrj32OR2POAO49gr3yN8S-6W7c",
@@ -11,8 +12,7 @@ const firebaseConfig = {
   measurementId: "G-CPGLM61CH9"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-
-// Enable persistence
-auth.setPersistence('local');
+export const db = getFirestore(app); 

@@ -1,39 +1,77 @@
 // src/components/Login.js
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { auth } from '../config/firebaseConfig';
+import { auth, db } from '../config/firebaseConfig';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider
 } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore'; // Import Firestore functions
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
+    if (!role) {
+      setError('Please select a role (Doctor or Patient).');
+      return;
+    }
+
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+    
+        // Attempt to save user data to Firestore
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            role: role
+          });
+          console.log("User data saved to Firestore successfully!");
+        } catch (firestoreError) {
+          console.error("Error writing document to Firestore:", firestoreError);
+          setError("Failed to save user data. Please try again.");
+        }
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (error) {
       setError(error.message);
+      console.error("Error in authentication:", error);
     }
+    
   };
 
   const handleGoogleSignIn = async () => {
+    if (!role) {
+      setError('Please select a role first');
+      return;
+    }
+
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user data already exists in Firestore
+      const userDoc = doc(db, 'users', user.uid);
+      const userSnapshot = await getDoc(userDoc);
+      if (!userSnapshot.exists()) {
+        await setDoc(userDoc, {
+          email: user.email,
+          role: role
+        });
+      }
     } catch (error) {
       setError(error.message);
     }
@@ -73,6 +111,19 @@ const Login = () => {
               placeholder="Enter your password"
               required
             />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Role</Label>
+            <Select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              required
+            >
+              <option value="">Select Role</option>
+              <option value="Doctor">Doctor</option>
+              <option value="Patient">Patient</option>
+            </Select>
           </InputGroup>
 
           <Button type="submit">
@@ -167,6 +218,19 @@ const Input = styled.input`
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s;
+
+  &:focus {
+    border-color: #007bff;
+    outline: none;
+  }
+`;
+
+const Select = styled.select`
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
 
   &:focus {
     border-color: #007bff;
