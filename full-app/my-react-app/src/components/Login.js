@@ -42,7 +42,7 @@ const Login = () => {
   return (
     <Container>
       <FormCard>
-        <Title>{isSignUp ? 'Create Account' : 'Welcome Back'}</Title>
+        <Title>{isSignUp ? 'Welcome to DocTranslate' : 'Welcome Back at DocTranslate'}</Title>
         <Subtitle>
           {isSignUp 
             ? 'Please sign up to continue' 
@@ -82,7 +82,7 @@ const Login = () => {
           <Divider>or</Divider>
 
           <GoogleButton type="button" onClick={handleGoogleSignIn}>
-            <GoogleIcon src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google" />
+            <GoogleIcon src="/google_icon.jpg" alt="Google" />
             Continue with Google
           </GoogleButton>
 
@@ -106,9 +106,17 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-  padding: 20px;
+  width: 100vw;
+  height: 100vh;
+  background-image: url('/background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 0;
+  margin: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
 `;
 
 const FormCard = styled.div`
@@ -176,6 +184,8 @@ const Button = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  width: 100%;
+  text-align: center;
 
   &:hover {
     background-color: #0056b3;
