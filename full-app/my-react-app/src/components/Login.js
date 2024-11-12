@@ -38,6 +38,12 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = async () => {
+    // Check if role is selected before allowing Google sign-in
+    if (!role) {
+      setError('Please select a role first');
+      return;
+    }
+
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
