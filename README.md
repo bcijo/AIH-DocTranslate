@@ -71,13 +71,19 @@ python -m venv venv
 Activate the virtual environment:
 
 - For macOS/Linux:
-```source venv/bin/activate```
+```
+source venv/bin/activate
+```
 
 - For Windows:
-```.\venv\Scripts\activate```
+```
+.\venv\Scripts\activate
+```
 
 Install the required Python packages:
-```pip install -r requirements.txt```
+```
+pip install -r requirements.txt
+```
 
 ### Run the Flask BackEnd
 
