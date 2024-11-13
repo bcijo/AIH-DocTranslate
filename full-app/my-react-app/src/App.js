@@ -5,20 +5,16 @@ import { AuthProvider, useAuth } from './hooks/AuthProvider';
 import Login from './components/Login';
 import DoctorHomePage from './pages/doctor/home';
 import PatientHomePage from './pages/patient/home';
+import DoctorForm from './components/DoctorForm';
+import PatientForm from './components/PatientForm';
 
 function App() {
   const { user } = useAuth(); // Get the current authenticated user
   const [error, setError] = useState('');
 
-  // Debugging: Log the user object and role
   useEffect(() => {
     if (user) {
       console.log('Current user:', user);
-      if (user.role) {
-        console.log("User role:", user.role);
-      } else {
-        setError('User role is missing.');
-      }
     }
   }, [user]);
 
@@ -35,7 +31,17 @@ function App() {
     return <Login />;
   }
 
-  // If the role is not found, show an error message and allow user to go back to login
+  // Show appropriate form if profile is not complete
+  if (user.role && !user.isProfileComplete) {
+    if (user.role === 'Doctor') {
+      return <DoctorForm user={user} />;
+    }
+    if (user.role === 'Patient') {
+      return <PatientForm user={user} />;
+    }
+  }
+
+  // Show role not found error
   if (!user.role) {
     return (
       <div>
