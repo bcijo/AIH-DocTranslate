@@ -1,4 +1,3 @@
-// src/components/Login.js
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { auth, db } from '../config/firebaseConfig';
@@ -8,7 +7,9 @@ import {
   signInWithPopup,
   GoogleAuthProvider
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore'; // Import Firestore functions
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import DoctorForm from './DoctorForm';
+import PatientForm from './PatientForm';
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -16,6 +17,8 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('');
   const [error, setError] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,28 +31,38 @@ const Login = () => {
 
     try {
       if (isSignUp) {
+        // Handle Sign Up
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-    
-        // Attempt to save user data to Firestore
-        try {
-          await setDoc(doc(db, 'users', user.uid), {
-            email: user.email,
-            role: role
-          });
-          console.log("User data saved to Firestore successfully!");
-        } catch (firestoreError) {
-          console.error("Error writing document to Firestore:", firestoreError);
-          setError("Failed to save user data. Please try again.");
-        }
+        
+        // Save basic user data to Firestore
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          role: role,
+          isProfileComplete: false // Add this flag
+        });
+        
+        setCurrentUser(user);
+        setShowForm(true);
+        
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        // Handle Sign In
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Check if profile is complete
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.data();
+        
+        if (userData && !userData.isProfileComplete) {
+          setCurrentUser(user);
+          setShowForm(true);
+        }
       }
     } catch (error) {
       setError(error.message);
       console.error("Error in authentication:", error);
     }
-    
   };
 
   const handleGoogleSignIn = async () => {
@@ -63,19 +76,39 @@ const Login = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if user data already exists in Firestore
-      const userDoc = doc(db, 'users', user.uid);
-      const userSnapshot = await getDoc(userDoc);
-      if (!userSnapshot.exists()) {
-        await setDoc(userDoc, {
+      // Check if user exists in Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      
+      if (!userDoc.exists()) {
+        // New Google user - create profile
+        await setDoc(doc(db, 'users', user.uid), {
           email: user.email,
-          role: role
+          role: role,
+          isProfileComplete: false
         });
+        setCurrentUser(user);
+        setShowForm(true);
+      } else {
+        // Existing user - check if profile is complete
+        const userData = userDoc.data();
+        if (!userData.isProfileComplete) {
+          setCurrentUser(user);
+          setShowForm(true);
+        }
       }
     } catch (error) {
       setError(error.message);
     }
   };
+
+  // Show appropriate form based on role if showForm is true
+  if (showForm && currentUser) {
+    if (role === 'Doctor') {
+      return <DoctorForm user={currentUser} />;
+    } else if (role === 'Patient') {
+      return <PatientForm user={currentUser} />;
+    }
+  }
 
   return (
     <Container>
@@ -86,6 +119,7 @@ const Login = () => {
             ? 'Please sign up to continue' 
             : 'Please login to continue'
           }
+
         </Subtitle>
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -310,19 +344,13 @@ const ErrorMessage = styled.div`
 `;
 
 const ToggleText = styled.p`
-  text-align: center;
   font-size: 14px;
-  color: #666;
+  text-align: center;
 `;
 
 const ToggleLink = styled.span`
   color: #007bff;
   cursor: pointer;
-  font-weight: 500;
-
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 export default Login;

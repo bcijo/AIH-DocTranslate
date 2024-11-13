@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../config/firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore"; // Add onSnapshot
 
 const AuthContext = createContext();
 
@@ -12,50 +12,113 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeFirestore = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         try {
+          // Set up real-time listener for user document
           const userDocRef = doc(db, "users", currentUser.uid);
-          const userDoc = await getDoc(userDocRef);
-  
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            console.log("Fetched user data:", userData); // Debug: Check retrieved data
-            
-            // Check if role exists in the document
-            if (userData.role) {
-              setUser({ ...currentUser, role: userData.role });
+          
+          unsubscribeFirestore = onSnapshot(userDocRef, (doc) => {
+            if (doc.exists()) {
+              const userData = doc.data();
+              console.log("Real-time user data update:", userData);
+
+              if (userData.role) {
+                setUser({
+                  ...currentUser,
+                  uid: currentUser.uid,
+                  email: currentUser.email,
+                  role: userData.role,
+                  isProfileComplete: !!userData.isProfileComplete,
+                  ...userData // Include any other fields from Firestore
+                });
+                console.log("Updated user state:", {
+                  uid: currentUser.uid,
+                  email: currentUser.email,
+                  role: userData.role,
+                  isProfileComplete: !!userData.isProfileComplete
+                });
+              } else {
+                console.warn("Role is missing in Firestore document:", userData);
+                setError("Role is missing in Firestore document");
+                setUser({
+                  ...currentUser,
+                  uid: currentUser.uid,
+                  email: currentUser.email,
+                  role: null,
+                  isProfileComplete: false
+                });
+              }
             } else {
-              console.warn("Role is missing in Firestore document:", userData); // Debug: Role missing
-              setUser({ ...currentUser, role: null });
+              console.warn("User document does not exist for UID:", currentUser.uid);
+              setError("User document does not exist");
+              setUser({
+                ...currentUser,
+                uid: currentUser.uid,
+                email: currentUser.email,
+                role: null,
+                isProfileComplete: false
+              });
             }
-          } else {
-            console.warn("User document does not exist for UID:", currentUser.uid);
-            setUser({ ...currentUser, role: null });
-          }
+          }, (error) => {
+            console.error("Error in Firestore listener:", error);
+            setError("Error listening to user data");
+          });
+
         } catch (error) {
-          console.error("Error fetching user data from Firestore:", error);
-          setUser({ ...currentUser, role: null });
+          console.error("Error setting up Firestore listener:", error);
+          setError("Error setting up user data listener");
+          setUser({
+            ...currentUser,
+            uid: currentUser.uid,
+            email: currentUser.email,
+            role: null,
+            isProfileComplete: false
+          });
         }
       } else {
+        if (unsubscribeFirestore) {
+          unsubscribeFirestore();
+          unsubscribeFirestore = null;
+        }
         setUser(null);
       }
       setLoading(false);
     });
-  
-    return unsubscribe;
-  }, []);
-  
 
-  const value = {
+    // Cleanup function
+    return () => {
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+      }
+      unsubscribeAuth();
+    };
+  }, []);
+
+  // Debug logging for state changes
+  useEffect(() => {
+    if (user) {
+      console.log("Auth state updated:", {
+        uid: user.uid,
+        role: user.role,
+        isProfileComplete: user.isProfileComplete
+      });
+    }
+  }, [user]);
+
+  const authContextValue = {
     user,
     loading,
+    error,
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={authContextValue}>
       {!loading && children}
     </AuthContext.Provider>
   );
