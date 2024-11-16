@@ -111,7 +111,7 @@ function App() {
       />
       
       <Route
-        path="/patient/home"
+        path="/patient/*"
         element={
           <ProtectedRoute requiredRole="Patient">
             {!user.isProfileComplete && location.state?.isProfileComplete !== true ? (
