@@ -17,7 +17,7 @@ const DoctorHomePage = () => {
 
             <Routes>
                 <Route
-                    path="/doctor/home"
+                    path="home"
                     element={
                         <div>
                             <h1 style={{ color: '#DCE4C9' }}>Welcome, Doctor</h1>
