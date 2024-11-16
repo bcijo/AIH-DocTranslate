@@ -98,7 +98,7 @@ function App() {
       />
 
       <Route
-        path="/doctor/home"
+        path="/doctor/*"
         element={
           <ProtectedRoute requiredRole="Doctor">
             {!user.isProfileComplete && location.state?.isProfileComplete !== true ? (
@@ -111,7 +111,7 @@ function App() {
       />
       
       <Route
-        path="/patient/home"
+        path="/patient/*"
         element={
           <ProtectedRoute requiredRole="Patient">
             {!user.isProfileComplete && location.state?.isProfileComplete !== true ? (
