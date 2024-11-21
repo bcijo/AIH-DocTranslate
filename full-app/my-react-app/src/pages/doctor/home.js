@@ -1,48 +1,57 @@
 import React from 'react';
+import { createGlobalStyle } from 'styled-components';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import UserProfile from '../../components/UserProfile';
 import Patient from './patients';
 import PatientDetails from './patient_details';
 import styled, { keyframes } from 'styled-components';
 
+const HeroSectionContent = () => (
+  <HeroSection>
+    <HeroText>
+      <Title>Empowering Your Practice</Title>
+      <Subtitle>
+        Streamline administrative tasks, access real-time patient data, and enhance patient engagement.
+      </Subtitle>
+      <Actions>
+        <ActionButton primary>Get Started</ActionButton>
+        <ActionButton>Learn More</ActionButton>
+      </Actions>
+    </HeroText>
+    <HeroImage src="/doctor.png" alt="Doctor" />
+  </HeroSection>
+);
+
 const DoctorHomePage = () => {
   return (
-    <Container>
-      <Navbar>
-        <Logo>DocTranslate</Logo>
-        <NavLinks>
-          <StyledNavLink to="home">Home</StyledNavLink>
-          <StyledNavLink to="sessions">Session</StyledNavLink>
-          <StyledNavLink to="patients">Patients</StyledNavLink>
-          <StyledNavLink to="appointments">Appointments</StyledNavLink>
-        </NavLinks>
-        <ProfileButton>
-          <UserProfile />
-        </ProfileButton>
-      </Navbar>
+    <>
+      <GlobalStyle />
+      <Container>
+        <Navbar>
+          <Logo>DocTranslate</Logo>
+          <NavLinks>
+            <StyledNavLink to="home">Home</StyledNavLink>
+            <StyledNavLink to="sessions">Session</StyledNavLink>
+            <StyledNavLink to="patients">Patients</StyledNavLink>
+            <StyledNavLink to="appointments">Appointments</StyledNavLink>
+          </NavLinks>
+          <ProfileButton>
+            <UserProfile />
+          </ProfileButton>
+        </Navbar>
 
-      <HeroSection>
-        <HeroText>
-          <Title>Empowering Your Practice</Title>
-          <Subtitle>
-            Streamline administrative tasks, access real-time patient data, and enhance patient engagement.
-          </Subtitle>
-          <Actions>
-            <ActionButton primary>Get Started</ActionButton>
-            <ActionButton>Learn More</ActionButton>
-          </Actions>
-        </HeroText>
-        <HeroImage src="/doctor.png" alt="Doctor" />
-      </HeroSection>
-
-      <Routes>
-        <Route path="home" element={<HeroSection />} />
-        <Route path="patients" element={<PatientDetails />} />
-        <Route path="sessions" element={<Patient />} />
-      </Routes>
-    </Container>
+        <Routes>
+          {/* Default route and Home route share the same HeroSectionContent */}
+          <Route index element={<HeroSectionContent />} />
+          <Route path="home" element={<HeroSectionContent />} />
+          <Route path="patients" element={<PatientDetails />} />
+          <Route path="sessions" element={<Patient />} />
+        </Routes>
+      </Container>
+    </>
   );
 };
+
 
 // Keyframes for animation
 const fadeIn = keyframes`
@@ -51,6 +60,21 @@ const fadeIn = keyframes`
   }
   to {
     opacity: 1;
+  }
+`;
+
+// Global Style to Remove Default Margins and Scrollbars
+const GlobalStyle = createGlobalStyle`
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100%;
+    overflow: hidden;
   }
 `;
 
@@ -65,8 +89,14 @@ const Container = styled.div`
   flex-direction: column;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Remove scrolling */
+  overflow: hidden;
+  position: fixed; // Added to prevent scrolling
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 `;
+
 
 const Navbar = styled.nav`
   display: flex;
