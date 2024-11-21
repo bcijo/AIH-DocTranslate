@@ -11,6 +11,7 @@ const DoctorHomePage = () => {
         <Logo>DocTranslate</Logo>
         <NavLinks>
           <StyledNavLink to="home">Home</StyledNavLink>
+          <StyledNavLink to="sessions">Session</StyledNavLink>
           <StyledNavLink to="patients">Patients</StyledNavLink>
           <StyledNavLink to="appointments">Appointments</StyledNavLink>
         </NavLinks>
@@ -36,6 +37,7 @@ const DoctorHomePage = () => {
       <Routes>
         <Route path="home" element={<HeroSection />} />
         <Route path="patients" element={<Patient />} />
+        <Route path="sessions" element={<Patient />} />
       </Routes>
     </Container>
   );
