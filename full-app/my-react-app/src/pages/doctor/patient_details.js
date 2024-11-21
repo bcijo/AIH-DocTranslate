@@ -7,6 +7,8 @@ const PatientDetails = () => {
   const [patients, setPatients] = useState([]);
   const [activePatient, setActivePatient] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [visits, setVisits] = useState([]);
+  const [expanded, setExpanded] = useState(false);
   const containerRef = useRef(null);
 
   // Fetch patients from Firestore
@@ -24,6 +26,25 @@ const PatientDetails = () => {
 
     fetchPatients();
   }, []);
+
+  // Fetch visits for the active patient
+  useEffect(() => {
+    const fetchVisits = async () => {
+      if (activePatient) {
+        try {
+          const visitsCollection = collection(db, 'visits');
+          const visitsQuery = await getDocs(visitsCollection);
+          const visitsData = visitsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const patientVisits = visitsData.filter(visit => visit.PatientID === activePatient.id);
+          setVisits(patientVisits);
+        } catch (error) {
+          console.error('Error fetching visits:', error);
+        }
+      }
+    };
+
+    fetchVisits();
+  }, [activePatient]);
 
   // Filter patients based on the search query
   const filteredPatients = patients.filter(patient =>
@@ -73,17 +94,33 @@ const PatientDetails = () => {
               <Age>Age: {activePatient.age}</Age>
             </PatientHeader>
             <VisitsList>
-              {activePatient.visits && activePatient.visits.length > 0 ? (
-                activePatient.visits.map((visit, index) => (
+              {visits.length > 0 ? (
+                visits.map((visit, index) => (
                   <VisitItem key={index}>
-                    <strong>Date:</strong> {visit.date}<br />
-                    <strong>Reason:</strong> {visit.reason}
+                    <strong>Date:</strong> {visit.VisitDate}<br />
+                    <strong>Reason:</strong> {visit.DoctorRecommendation}
                   </VisitItem>
                 ))
               ) : (
                 <p>No previous visits</p>
               )}
             </VisitsList>
+            <ExpandButton onClick={() => setExpanded(!expanded)}>
+              {expanded ? 'Collapse' : 'Expand'}
+            </ExpandButton>
+            {expanded && (
+              <ExpandedDetails>
+                <DetailItem>
+                  <strong>Patient Condition:</strong> {visits[0]?.PatientCondition}
+                </DetailItem>
+                <DetailItem>
+                  <strong>Doctor Recommendation:</strong> {visits[0]?.DoctorRecommendation}
+                </DetailItem>
+                <DetailItem>
+                  <strong>Medication Prescription:</strong> {visits[0]?.MedicationPrescription}
+                </DetailItem>
+              </ExpandedDetails>
+            )}
           </DetailsContainer>
         )}
       </ContentContainer>
@@ -127,7 +164,7 @@ const TabContainer = styled.div`
   padding: 10px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
-  width: ${({ activePatient }) => (activePatient ? '40%' : '40%')};
+  width: ${({ activePatient }) => (activePatient ? '40%' : '60%')};
   margin-right: ${({ activePatient }) => (activePatient ? '20px' : '0')};
   transition: width 0.3s ease, margin-right 0.3s ease;
 `;
@@ -185,6 +222,33 @@ const VisitItem = styled.div`
   margin-bottom: 10px;
   padding: 10px;
   background: #f7f9ff;
+  border-radius: 5px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const ExpandButton = styled.button`
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: #7f91f7;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+
+  &:hover {
+    background: #5a6ea1;
+  }
+`;
+
+const ExpandedDetails = styled.div`
+  margin-top: 20px;
+`;
+
+const DetailItem = styled.div`
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #e0e7ff;
   border-radius: 5px;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 `;

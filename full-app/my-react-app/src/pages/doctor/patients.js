@@ -3,7 +3,8 @@ import axios from 'axios';
 import { FaMicrophone, FaStop, FaVolumeUp } from 'react-icons/fa';
 import styled, { createGlobalStyle } from 'styled-components';
 import { db } from '../../config/firebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { useAuth } from '../../hooks/AuthProvider';
 
 function Patient() {
   const [inputText, setInputText] = useState('');
@@ -17,6 +18,11 @@ function Patient() {
   const [patients, setPatients] = useState([]);
   const [activePatient, setActivePatient] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [doctorSummary, setDoctorSummary] = useState('');
+  const [medicationPrescription, setMedicationPrescription] = useState('');
+  const [step, setStep] = useState(1); // 1: Patient summary, 2: Doctor summary, 3: Medication prescription
+
+  const { user } = useAuth(); // Get the authenticated user
 
   // Fetch patients from Firestore
   useEffect(() => {
@@ -51,25 +57,15 @@ function Patient() {
       const response = await axios.post('http://localhost:5000/api/summarize', {
         text: inputText,
       });
-      setSummary(response.data.summary);
+      if (step === 1) {
+        setSummary(response.data.summary);
+      } else if (step === 2) {
+        setDoctorSummary(response.data.summary);
+      } else if (step === 3) {
+        setMedicationPrescription(response.data.summary);
+      }
     } catch (error) {
       console.error('Summarization Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to translate summarized text using the Flask backend
-  const handleTranslate = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.post('http://localhost:5000/api/translate', {
-        text: summary,
-        target_lang: 'en',
-      });
-      setTranslatedText(response.data.translated_text);
-    } catch (error) {
-      console.error('Translation Error:', error);
     } finally {
       setLoading(false);
     }
@@ -98,6 +94,8 @@ function Patient() {
     recognition.onend = () => {
       setRecognitionActive(false);
       console.log('Speech recognition stopped.');
+      handleSummarize();
+      setStep(step + 1); // Move to the next step
     };
 
     recognition.start();
@@ -138,6 +136,26 @@ function Patient() {
     return languageMap[language] || 'en-US';
   };
 
+  // Function to save visit details to Firestore
+  const saveVisitDetails = async () => {
+    try {
+      const visitsCollection = collection(db, 'visits');
+      await addDoc(visitsCollection, {
+        DoctorID: user.uid,
+        PatientID: activePatient.id,
+        PatientName: activePatient.name,
+        PatientCondition: summary,
+        DoctorRecommendation: doctorSummary,
+        MedicationPrescription: medicationPrescription,
+        VisitDate: new Date().toISOString(),
+        VisitType: 'in-person',
+      });
+      console.log('Visit details saved successfully');
+    } catch (error) {
+      console.error('Error saving visit details:', error);
+    }
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -145,12 +163,6 @@ function Patient() {
         <ContentContainer>
           <LeftContainer>
             <Title>Doctor Translator & Summarizer</Title>
-            <TextArea
-              placeholder="Enter text here..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              rows={6}
-            />
             <IconContainer>
               <IconCircle onClick={recognitionActive ? stopVoiceInput : startVoiceInput}>
                 <StyledIcon as={FaMicrophone} size={30} active={recognitionActive} />
@@ -162,18 +174,21 @@ function Patient() {
                 <StyledIcon as={FaVolumeUp} size={30} />
               </IconCircle>
             </IconContainer>
+            {step === 1 && <ResultText>Record Patient Problem</ResultText>}
+            {step === 2 && <ResultText>Record Doctor Feedback</ResultText>}
+            {step === 3 && <ResultText>Record Medication Prescribed</ResultText>}
+            {summary && <ResultText>Patient Summary: {summary}</ResultText>}
+            {doctorSummary && <ResultText>Doctor Summary: {doctorSummary}</ResultText>}
+            {medicationPrescription && <ResultText>Medication Prescription: {medicationPrescription}</ResultText>}
+            {translatedText && <ResultText>Translated Text: {translatedText}</ResultText>}
             <ButtonContainer>
-              <Button onClick={handleSummarize} disabled={loading}>
-                Summarize
-              </Button>
-              <Button onClick={handleTranslate} disabled={loading}>
-                Translate
+              <Button onClick={saveVisitDetails} disabled={loading || step < 4}>
+                Save Visit Details
               </Button>
             </ButtonContainer>
-            {summary && <ResultText>Summary: {summary}</ResultText>}
-            {translatedText && <ResultText>Translated Text: {translatedText}</ResultText>}
           </LeftContainer>
           <RightContainer>
+            {activePatient && <PatientName>{activePatient.name}</PatientName>}
             <SearchBar
               type="text"
               placeholder="Search patients..."
@@ -230,7 +245,6 @@ const LeftContainer = styled.div`
 
 const RightContainer = styled.div`
   width: 30%;
-  margin-top: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -242,16 +256,6 @@ const Title = styled.h2`
   font-size: 2rem;
   margin-bottom: 20px;
   text-align: center;
-`;
-
-const TextArea = styled.textarea`
-  width: 80%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #7f91f7;
-  border-radius: 8px;
-  resize: none;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
 const IconContainer = styled.div`
@@ -337,7 +341,6 @@ const PatientList = styled.div`
   padding: 10px;
   background: #f7f9ff;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
 `;
 
 const PatientItem = styled.div`
@@ -355,6 +358,14 @@ const PatientItem = styled.div`
   &:hover {
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
   }
+`;
+
+const PatientName = styled.div`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #3a4d99;
+  margin-bottom: 20px;
+  text-align: right;
 `;
 
 export default Patient;
