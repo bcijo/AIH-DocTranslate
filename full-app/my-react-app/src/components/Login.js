@@ -24,7 +24,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
-    if (!role) {
+    if (isSignUp && !role) {
       setError('Please select a role (Doctor or Patient).');
       return;
     }
@@ -66,7 +66,7 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!role) {
+    if (isSignUp && !role) {
       setError('Please select a role first');
       return;
     }
@@ -147,18 +147,20 @@ const Login = () => {
             />
           </InputGroup>
 
-          <InputGroup>
-            <Label>Role</Label>
-            <Select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              required
-            >
-              <option value="">Select Role</option>
-              <option value="Doctor">Doctor</option>
-              <option value="Patient">Patient</option>
-            </Select>
-          </InputGroup>
+          {isSignUp && (
+            <InputGroup>
+              <Label>Role</Label>
+              <Select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                required
+              >
+                <option value="">Select Role</option>
+                <option value="Doctor">Doctor</option>
+                <option value="Patient">Patient</option>
+              </Select>
+            </InputGroup>
+          )}
 
           <Button type="submit">
             {isSignUp ? 'Sign Up' : 'Sign In'}
