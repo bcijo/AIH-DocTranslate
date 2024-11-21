@@ -8,9 +8,17 @@ function Doctor() {
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [recognitionActive, setRecognitionActive] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('telugu');
-  const [synth, setSynth] = useState(window.speechSynthesis);
-  const [utterance, setUtterance] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('english'); // Default to English
+
+  // Language map for speech recognition and translation
+  const languageMap = {
+    telugu: 'te-IN',
+    hindi: 'hi-IN',
+    tamil: 'ta-IN',
+    malayalam: 'ml-IN',
+    kannada: 'kn-IN',
+    english: 'en-US'
+  };
 
   // Function to handle language selection
   const handleLanguageChange = (e) => {
@@ -37,7 +45,7 @@ function Doctor() {
     try {
       setLoading(true);
       const response = await axios.post('http://localhost:5000/api/translate', {
-        text: summary,
+        text: inputText,
         target_lang: selectedLanguage,
       });
       setTranslatedText(response.data.translated_text);
@@ -55,7 +63,7 @@ function Doctor() {
       return;
     }
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-US';
+    recognition.lang = languageMap[selectedLanguage]; // Set language based on selectedLanguage
 
     recognition.onstart = () => {
       setRecognitionActive(true);
@@ -82,92 +90,153 @@ function Doctor() {
     console.log('Speech recognition manually stopped.');
   };
 
-  // Speak translated text
-  const handleSpeak = () => {
+  // Speak translated text using the Flask backend
+  const handleSpeak = async () => {
     if (!translatedText) return;
 
-    const newUtterance = new SpeechSynthesisUtterance(translatedText);
-    newUtterance.lang = getLanguageCode(selectedLanguage);
-    synth.cancel(); // Stop any ongoing speech
-    synth.speak(newUtterance);
-    setUtterance(newUtterance);
+    try {
+      const response = await axios.post('http://localhost:5000/api/speak', {
+        text: translatedText,
+        lang: getLanguageCode(selectedLanguage),
+      });
+
+      console.log(response.data.message); // Log successful start of speech
+    } catch (error) {
+      console.error('Speech Error:', error);
+    }
   };
 
-  // Stop speaking
-  const stopSpeaking = () => {
-    if (synth) synth.cancel();
-    setUtterance(null);
+  // Stop speech using the Flask backend
+  const handleStopSpeech = async () => {
+    try {
+      await axios.post('http://localhost:5000/api/stop-speech');
+      console.log('Speech stopped');
+    } catch (error) {
+      console.error('Error stopping speech:', error);
+    }
   };
 
-  // Language code mapper
   const getLanguageCode = (language) => {
     const languageMap = {
-      telugu: 'te-IN',
-      kannada: 'kn-IN',
-      tamil: 'ta-IN',
-      malayalam: 'ml-IN',
-      hindi: 'hi-IN',
+      telugu: 'te',
+      hindi: 'hi',
+      tamil: 'ta',
+      malayalam: 'ml',
+      kannada: 'kn',
     };
-    return languageMap[language] || 'en-US';
-  };
-
-  const containerStyle = {
-    margin: '20px',
-    textAlign: 'center',
-    fontFamily: 'Arial, sans-serif',
+    return languageMap[language] || 'en';
   };
 
   return (
-    <div style={containerStyle}>
-      <h2>Patient Translator & Summarizer</h2>
+    <div style={styles.container}>
+      <h2>Patient Translate</h2>
+      <select 
+        value={selectedLanguage} 
+        onChange={handleLanguageChange} 
+        style={styles.select}
+      >
+        <option value="english">English</option>
+        <option value="telugu">Telugu</option>
+        <option value="hindi">Hindi</option>
+        <option value="tamil">Tamil</option>
+        <option value="malayalam">Malayalam</option>
+        <option value="kannada">Kannada</option>
+      </select>
+
       <textarea
-        placeholder="Enter text here..."
         value={inputText}
         onChange={(e) => setInputText(e.target.value)}
-        rows={6}
-        style={{ width: '80%', marginBottom: '10px', padding: '10px' }}
+        placeholder="Enter text for translation or voice input"
+        rows="4"
+        cols="50"
+        style={styles.textarea}
       />
-      <div>
-        <FaMicrophone
-          size={30}
-          style={{ margin: '10px', cursor: 'pointer', color: recognitionActive ? 'red' : 'black' }}
-          onClick={recognitionActive ? stopVoiceInput : startVoiceInput}
-        />
-        <FaStop
-          size={30}
-          style={{ margin: '10px', cursor: 'pointer', color: 'black' }}
-          onClick={stopSpeaking}
-        />
-        <FaVolumeUp
-          size={30}
-          style={{ margin: '10px', cursor: 'pointer', color: 'black' }}
-          onClick={handleSpeak}
-        />
+      <br />
+      <div style={styles.buttonContainer}>
+        
+      <button onClick={handleSummarize} disabled={loading} style={styles.button}>Summarize</button>
+        <button onClick={handleTranslate} disabled={loading} style={styles.button}>Translate</button>
       </div>
-      <div>
-        <button onClick={handleSummarize} disabled={loading}>
-          Summarize
-        </button>
-        <button onClick={handleTranslate} disabled={loading}>
-          Translate
-        </button>
+      {summary && (
+        <div>
+          <h3>Summary:</h3>
+          <p>{summary}</p>
+        </div>
+      )}
+      {translatedText && (
+        <div>
+          <h3>Translated Text:</h3>
+          <p>{translatedText}</p>
+        </div>
+      )}
+
+      
+
+      <br />
+      <div style={styles.voiceContainer}>
+        {recognitionActive ? (
+          <button onClick={stopVoiceInput} style={styles.voiceButton}><FaStop /> Stop</button>
+        ) : (
+          <button onClick={startVoiceInput} style={styles.voiceButton}><FaMicrophone /> Start</button>
+        )}
+        <button onClick={handleSpeak} style={styles.voiceButton}><FaVolumeUp /> Speak</button>
+        <button onClick={handleStopSpeech} style={styles.voiceButton}><FaStop /> Stop Speech</button>
       </div>
-      <div>
-        <label htmlFor="languageSelect">Select Language:</label>
-        <select id="languageSelect" value={selectedLanguage} onChange={handleLanguageChange}>
-          <option value="telugu">Telugu</option>
-          <option value="kannada">Kannada</option>
-          <option value="tamil">Tamil</option>
-          <option value="malayalam">Malayalam</option>
-          <option value="hindi">Hindi</option>
-        </select>
-      </div>
-      {summary && <p>Summary: {summary}</p>}
-      {translatedText && <p>Translated Text: {translatedText}</p>}
     </div>
   );
 }
 
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100vh',
+    textAlign: 'center',
+  },
+  textarea: {
+    width: '80%',
+    maxWidth: '600px',
+    padding: '10px',
+    margin: '10px 0',
+    borderRadius: '5px',
+  },
+  buttonContainer: {
+    display: 'flex',
+    gap: '10px',
+    justifyContent: 'center',
+    margin: '10px 0',
+  },
+  button: {
+    padding: '10px 20px',
+    fontSize: '16px',
+    cursor: 'pointer',
+    borderRadius: '5px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+  },
+  select: {
+    padding: '10px',
+    fontSize: '16px',
+    margin: '10px 0',
+  },
+  voiceContainer: {
+    display: 'flex',
+    gap: '15px',
+    justifyContent: 'center',
+    marginTop: '20px',
+  },
+  voiceButton: {
+    padding: '10px 20px',
+    fontSize: '16px',
+    cursor: 'pointer',
+    borderRadius: '5px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+  },
+};
+
 export default Doctor;
-
-
