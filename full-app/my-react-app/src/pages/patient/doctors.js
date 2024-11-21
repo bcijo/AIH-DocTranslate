@@ -9,17 +9,9 @@ function Doctor() {
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [recognitionActive, setRecognitionActive] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('english'); // Default to English
-
-  // Language map for speech recognition and translation
-  const languageMap = {
-    telugu: 'te-IN',
-    hindi: 'hi-IN',
-    tamil: 'ta-IN',
-    malayalam: 'ml-IN',
-    kannada: 'kn-IN',
-    english: 'en-US'
-  };
+  const [selectedLanguage, setSelectedLanguage] = useState('telugu');
+  const [synth, setSynth] = useState(window.speechSynthesis);
+  const [utterance, setUtterance] = useState(null);
 
   // Function to handle language selection
   const handleLanguageChange = (e) => {
@@ -46,7 +38,7 @@ function Doctor() {
     try {
       setLoading(true);
       const response = await axios.post('http://localhost:5000/api/translate', {
-        text: inputText,
+        text: summary,
         target_lang: selectedLanguage,
       });
       setTranslatedText(response.data.translated_text);
@@ -64,7 +56,7 @@ function Doctor() {
       return;
     }
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = languageMap[selectedLanguage]; // Set language based on selectedLanguage
+    recognition.lang = 'en-US';
 
     recognition.onstart = () => {
       setRecognitionActive(true);
@@ -91,41 +83,39 @@ function Doctor() {
     console.log('Speech recognition manually stopped.');
   };
 
-  // Speak translated text using the Flask backend
-  const handleSpeak = async () => {
+  // Speak translated text
+  const handleSpeak = () => {
     if (!translatedText) return;
 
-    try {
-      const response = await axios.post('http://localhost:5000/api/speak', {
-        text: translatedText,
-        lang: getLanguageCode(selectedLanguage),
-      });
-
-      console.log(response.data.message); // Log successful start of speech
-    } catch (error) {
-      console.error('Speech Error:', error);
-    }
+    const newUtterance = new SpeechSynthesisUtterance(translatedText);
+    newUtterance.lang = getLanguageCode(selectedLanguage);
+    synth.cancel(); // Stop any ongoing speech
+    synth.speak(newUtterance);
+    setUtterance(newUtterance);
   };
 
-  // Stop speech using the Flask backend
-  const handleStopSpeech = async () => {
-    try {
-      await axios.post('http://localhost:5000/api/stop-speech');
-      console.log('Speech stopped');
-    } catch (error) {
-      console.error('Error stopping speech:', error);
-    }
+  // Stop speaking
+  const stopSpeaking = () => {
+    if (synth) synth.cancel();
+    setUtterance(null);
   };
 
+  // Language code mapper
   const getLanguageCode = (language) => {
     const languageMap = {
-      telugu: 'te',
-      hindi: 'hi',
-      tamil: 'ta',
-      malayalam: 'ml',
-      kannada: 'kn',
+      telugu: 'te-IN',
+      kannada: 'kn-IN',
+      tamil: 'ta-IN',
+      malayalam: 'ml-IN',
+      hindi: 'hi-IN',
     };
-    return languageMap[language] || 'en';
+    return languageMap[language] || 'en-US';
+  };
+
+  const containerStyle = {
+    margin: '20px',
+    textAlign: 'center',
+    fontFamily: 'Arial, sans-serif',
   };
 
   return (
@@ -146,7 +136,7 @@ function Doctor() {
               active={recognitionActive}
             />
           </IconCircle>
-          <IconCircle onClick={handleStopSpeech}>
+          <IconCircle onClick={stopSpeaking}>
             <StyledIcon as={FaStop} 
               size={30} 
             />
