@@ -4,11 +4,13 @@ import styled from 'styled-components';
 import { useAuth } from '../hooks/AuthProvider';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
+import { useNavigate } from 'react-router-dom';
 
 const UserProfile = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
@@ -33,23 +35,22 @@ const UserProfile = () => {
   return (
     <ProfileContainer ref={dropdownRef}>
       <ProfileButton onClick={() => setIsOpen(!isOpen)}>
-        {user?.photoURL ? (
-          <ProfileImage src={user.photoURL} alt="Profile" />
-        ) : (
-          <ProfileInitial>{user?.email?.[0].toUpperCase() || 'U'}</ProfileInitial>
-        )}
+        <ProfileInitial>{user?.email?.[0].toUpperCase() || 'U'}</ProfileInitial>
       </ProfileButton>
 
       {isOpen && (
         <DropdownMenu>
           <UserInfo>
-            {user?.photoURL && <ProfileImage src={user.photoURL} alt="Profile" />}
             <UserDetails>
               <UserName>{user?.displayName || 'User'}</UserName>
               <UserEmail>{user?.email}</UserEmail>
             </UserDetails>
           </UserInfo>
           <Divider />
+          <MenuItem onClick={() => navigate('/update-profile')}>
+            <MenuIcon>⚙</MenuIcon>
+            Update Profile
+          </MenuItem>
           <MenuItem onClick={handleSignOut}>
             <MenuIcon>↪</MenuIcon>
             Sign Out
@@ -74,15 +75,6 @@ const ProfileButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const ProfileImage = styled.img`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
 const ProfileInitial = styled.div`
