@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { db } from '../../config/firebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
@@ -6,6 +6,8 @@ import { collection, getDocs } from 'firebase/firestore';
 const PatientDetails = () => {
   const [patients, setPatients] = useState([]);
   const [activePatient, setActivePatient] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const containerRef = useRef(null);
 
   // Fetch patients from Firestore
   useEffect(() => {
@@ -15,9 +17,6 @@ const PatientDetails = () => {
         const patientDocs = await getDocs(patientsCollection);
         const patientData = patientDocs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setPatients(patientData);
-        if (patientData.length > 0) {
-          setActivePatient(patientData[0]); // Set the first patient as active by default
-        }
       } catch (error) {
         console.error('Error fetching patients:', error);
       }
@@ -26,27 +25,53 @@ const PatientDetails = () => {
     fetchPatients();
   }, []);
 
+  // Filter patients based on the search query
+  const filteredPatients = patients.filter(patient =>
+    patient.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Handle clicks outside the patient list and details container
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setActivePatient(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <Container>
-      <TabContainer>
-        {patients.map(patient => (
-          <Tab
-            key={patient.id}
-            onClick={() => setActivePatient(patient)}
-            active={activePatient?.id === patient.id}
-          >
-            <Name>{patient.name}</Name>
-            <Age>Age: {patient.age}</Age>
-          </Tab>
-        ))}
-      </TabContainer>
-      <DetailsContainer>
-        {activePatient ? (
-          <>
-            <h2>{activePatient.name}</h2>
-            <p><strong>Age:</strong> {activePatient.age}</p>
-            <p><strong>Condition:</strong> {activePatient.condition}</p>
-            <h3>Previous Visits</h3>
+    <Container ref={containerRef}>
+      <Heading>Patient Details</Heading>
+      <SearchBar
+        type="text"
+        placeholder="Search patients..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      <ContentContainer>
+        <TabContainer activePatient={activePatient}>
+          {filteredPatients.map(patient => (
+            <Tab
+              key={patient.id}
+              onClick={() => setActivePatient(patient)}
+              active={activePatient?.id === patient.id}
+            >
+              <Name>{patient.name}</Name>
+              <Age>Age: {patient.age}</Age>
+            </Tab>
+          ))}
+        </TabContainer>
+        {activePatient && (
+          <DetailsContainer>
+            <PatientHeader>
+              <Name>{activePatient.name}</Name>
+              <Age>Age: {activePatient.age}</Age>
+            </PatientHeader>
             <VisitsList>
               {activePatient.visits && activePatient.visits.length > 0 ? (
                 activePatient.visits.map((visit, index) => (
@@ -59,11 +84,9 @@ const PatientDetails = () => {
                 <p>No previous visits</p>
               )}
             </VisitsList>
-          </>
-        ) : (
-          <p>No patient selected</p>
+          </DetailsContainer>
         )}
-      </DetailsContainer>
+      </ContentContainer>
     </Container>
   );
 };
@@ -71,8 +94,30 @@ const PatientDetails = () => {
 // Styled Components
 const Container = styled.div`
   display: flex;
+  flex-direction: column;
   height: 100%;
   width: 100%;
+`;
+
+const Heading = styled.h1`
+  text-align: center;
+  margin-bottom: 20px;
+  color: #3a4d99;
+`;
+
+const SearchBar = styled.input`
+  width: 50%;
+  padding: 10px;
+  margin: 20px auto;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+`;
+
+const ContentContainer = styled.div`
+  display: flex;
+  flex: 1;
+  justify-content: center;
 `;
 
 const TabContainer = styled.div`
@@ -82,7 +127,9 @@ const TabContainer = styled.div`
   padding: 10px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
-  width: 600px;
+  width: ${({ activePatient }) => (activePatient ? '40%' : '40%')};
+  margin-right: ${({ activePatient }) => (activePatient ? '20px' : '0')};
+  transition: width 0.3s ease, margin-right 0.3s ease;
 `;
 
 const Tab = styled.div`
@@ -115,11 +162,19 @@ const Age = styled.div`
 `;
 
 const DetailsContainer = styled.div`
-  flex: 1;
+  width: 800px;
   padding: 20px;
-  background: #fff;
+  background: #ffe6f2; /* Light shade of pink */
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
   overflow-y: auto;
+  color: #5a6ea1; /* Purple text */
+`;
+
+const PatientHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
 `;
 
 const VisitsList = styled.div`
