@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import UserProfile from '../../components/UserProfile';
 import Patient from './patients';
+import PatientDetails from './patient_details';
 import styled, { keyframes } from 'styled-components';
 
 const DoctorHomePage = () => {
@@ -36,7 +37,7 @@ const DoctorHomePage = () => {
 
       <Routes>
         <Route path="home" element={<HeroSection />} />
-        <Route path="patients" element={<Patient />} />
+        <Route path="patients" element={<PatientDetails />} />
         <Route path="sessions" element={<Patient />} />
       </Routes>
     </Container>
