@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { NavLink, Route, Routes } from 'react-router-dom';
 import UserProfile from '../../components/UserProfile';
 import Patient from './patients';
 import styled, { keyframes } from 'styled-components';
@@ -10,9 +10,9 @@ const DoctorHomePage = () => {
       <Navbar>
         <Logo>DocTranslate</Logo>
         <NavLinks>
-          <StyledLink to="home">Home</StyledLink>
-          <StyledLink to="patients">Patients</StyledLink>
-          <StyledLink to="appointments">Appointments</StyledLink>
+          <StyledNavLink to="home">Home</StyledNavLink>
+          <StyledNavLink to="patients">Patients</StyledNavLink>
+          <StyledNavLink to="appointments">Appointments</StyledNavLink>
         </NavLinks>
         <ProfileButton>
           <UserProfile />
@@ -96,14 +96,21 @@ const NavLinks = styled.div`
   flex-grow: 1; /* Allow the links to take up available space */
 `;
 
-const StyledLink = styled(Link)`
+const StyledNavLink = styled(NavLink)`
   color: #7f91f7;
   text-decoration: none;
   font-size: 1rem;
+  font-weight: bold; /* Make the text bold */
   padding: 10px 15px;
   border-radius: 5px;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease, color 0.3s ease;
+
+  &.active {
+    background-color: #e0e7ff; /* Light background color for active link */
+    color: #5a6ea1; /* Darker color for active link */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Stronger shadow for active link */
+  }
 
   &:hover {
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
