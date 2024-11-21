@@ -1,4 +1,5 @@
 import React from 'react';
+import { createGlobalStyle } from 'styled-components';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import UserProfile from '../../components/UserProfile';
 import Patient from './patients';
@@ -6,7 +7,9 @@ import styled, { keyframes } from 'styled-components';
 
 const DoctorHomePage = () => {
   return (
-    <Container>
+    <>
+      <GlobalStyle /> 
+      <Container>
       <Navbar>
         <Logo>DocTranslate</Logo>
         <NavLinks>
@@ -38,6 +41,7 @@ const DoctorHomePage = () => {
         <Route path="patients" element={<Patient />} />
       </Routes>
     </Container>
+    </>
   );
 };
 
@@ -48,6 +52,21 @@ const fadeIn = keyframes`
   }
   to {
     opacity: 1;
+  }
+`;
+
+// Global Style to Remove Default Margins and Scrollbars
+const GlobalStyle = createGlobalStyle`
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100%;
+    overflow: hidden;
   }
 `;
 
@@ -62,8 +81,14 @@ const Container = styled.div`
   flex-direction: column;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Remove scrolling */
+  overflow: hidden;
+  position: fixed; // Added to prevent scrolling
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 `;
+
 
 const Navbar = styled.nav`
   display: flex;
