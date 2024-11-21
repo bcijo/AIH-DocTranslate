@@ -297,4 +297,3 @@ const LanguageSelect = styled.select`
 
 export default Doctor;
 
-
