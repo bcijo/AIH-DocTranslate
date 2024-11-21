@@ -35,7 +35,8 @@ const PatientDetails = () => {
             onClick={() => setActivePatient(patient)}
             active={activePatient?.id === patient.id}
           >
-            {patient.name} {/* Assuming patients have a "name" field */}
+            <Name>{patient.name}</Name>
+            <Age>Age: {patient.age}</Age>
           </Tab>
         ))}
       </TabContainer>
@@ -43,8 +44,21 @@ const PatientDetails = () => {
         {activePatient ? (
           <>
             <h2>{activePatient.name}</h2>
-            <p><strong>Age:</strong> {activePatient.age}</p> {/* Replace fields as per your schema */}
+            <p><strong>Age:</strong> {activePatient.age}</p>
             <p><strong>Condition:</strong> {activePatient.condition}</p>
+            <h3>Previous Visits</h3>
+            <VisitsList>
+              {activePatient.visits && activePatient.visits.length > 0 ? (
+                activePatient.visits.map((visit, index) => (
+                  <VisitItem key={index}>
+                    <strong>Date:</strong> {visit.date}<br />
+                    <strong>Reason:</strong> {visit.reason}
+                  </VisitItem>
+                ))
+              ) : (
+                <p>No previous visits</p>
+              )}
+            </VisitsList>
           </>
         ) : (
           <p>No patient selected</p>
@@ -57,25 +71,29 @@ const PatientDetails = () => {
 // Styled Components
 const Container = styled.div`
   display: flex;
-  flex-direction: column;
   height: 100%;
   width: 100%;
 `;
 
 const TabContainer = styled.div`
   display: flex;
+  flex-direction: column;
   background: #f7f9ff;
   padding: 10px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  width: 600px;
 `;
 
 const Tab = styled.div`
+  display: flex;
+  justify-content: space-between;
   padding: 10px 15px;
   cursor: pointer;
   background: ${({ active }) => (active ? '#e0e7ff' : 'transparent')};
   color: ${({ active }) => (active ? '#5a6ea1' : '#7f91f7')};
   border-radius: 5px;
-  margin-right: 10px;
+  margin-bottom: 10px;
   box-shadow: ${({ active }) =>
     active ? '0px 4px 8px rgba(0, 0, 0, 0.2)' : '0px 2px 4px rgba(0, 0, 0, 0.1)'};
   transition: box-shadow 0.3s ease, background 0.3s ease;
@@ -85,11 +103,35 @@ const Tab = styled.div`
   }
 `;
 
+const Name = styled.div`
+  flex: 1;
+  font-weight: bold;
+  text-align: left;
+`;
+
+const Age = styled.div`
+  flex: 1;
+  text-align: right;
+`;
+
 const DetailsContainer = styled.div`
   flex: 1;
   padding: 20px;
   background: #fff;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+`;
+
+const VisitsList = styled.div`
+  margin-top: 20px;
+`;
+
+const VisitItem = styled.div`
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f7f9ff;
+  border-radius: 5px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
 export default PatientDetails;
