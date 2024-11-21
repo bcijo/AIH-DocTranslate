@@ -5,45 +5,51 @@ import UserProfile from '../../components/UserProfile';
 import Patient from './patients';
 import styled, { keyframes } from 'styled-components';
 
+const HeroSectionContent = () => (
+  <HeroSection>
+    <HeroText>
+      <Title>Empowering Your Practice</Title>
+      <Subtitle>
+        Streamline administrative tasks, access real-time patient data, and enhance patient engagement.
+      </Subtitle>
+      <Actions>
+        <ActionButton primary>Get Started</ActionButton>
+        <ActionButton>Learn More</ActionButton>
+      </Actions>
+    </HeroText>
+    <HeroImage src="/doctor.png" alt="Doctor" />
+  </HeroSection>
+);
+
 const DoctorHomePage = () => {
   return (
     <>
-      <GlobalStyle /> 
+      <GlobalStyle />
       <Container>
-      <Navbar>
-        <Logo>DocTranslate</Logo>
-        <NavLinks>
-          <StyledNavLink to="home">Home</StyledNavLink>
-          <StyledNavLink to="patients">Patients</StyledNavLink>
-          <StyledNavLink to="appointments">Appointments</StyledNavLink>
-        </NavLinks>
-        <ProfileButton>
-          <UserProfile />
-        </ProfileButton>
-      </Navbar>
+        <Navbar>
+          <Logo>DocTranslate</Logo>
+          <NavLinks>
+            <StyledNavLink to="home">Home</StyledNavLink>
+            <StyledNavLink to="patients">Patients</StyledNavLink>
+            <StyledNavLink to="appointments">Appointments</StyledNavLink>
+          </NavLinks>
+          <ProfileButton>
+            <UserProfile />
+          </ProfileButton>
+        </Navbar>
 
-      <HeroSection>
-        <HeroText>
-          <Title>Empowering Your Practice</Title>
-          <Subtitle>
-            Streamline administrative tasks, access real-time patient data, and enhance patient engagement.
-          </Subtitle>
-          <Actions>
-            <ActionButton primary>Get Started</ActionButton>
-            <ActionButton>Learn More</ActionButton>
-          </Actions>
-        </HeroText>
-        <HeroImage src="/doctor.png" alt="Doctor" />
-      </HeroSection>
-
-      <Routes>
-        <Route path="home" element={<HeroSection />} />
-        <Route path="patients" element={<Patient />} />
-      </Routes>
-    </Container>
+        <Routes>
+          {/* Default route and Home route share the same HeroSectionContent */}
+          <Route index element={<HeroSectionContent />} />
+          <Route path="home" element={<HeroSectionContent />} />
+          {/* Patients route */}
+          <Route path="patients" element={<Patient />} />
+        </Routes>
+      </Container>
     </>
   );
 };
+
 
 // Keyframes for animation
 const fadeIn = keyframes`
