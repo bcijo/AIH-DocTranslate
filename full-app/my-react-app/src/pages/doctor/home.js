@@ -3,7 +3,7 @@ import { createGlobalStyle } from 'styled-components';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import UserProfile from '../../components/UserProfile';
 import Patient from './patients';
-import PatientDetails from './patient_details'
+import PatientDetails from './patient_details';
 import styled, { keyframes } from 'styled-components';
 
 const HeroSectionContent = () => (
@@ -44,9 +44,8 @@ const DoctorHomePage = () => {
           {/* Default route and Home route share the same HeroSectionContent */}
           <Route index element={<HeroSectionContent />} />
           <Route path="home" element={<HeroSectionContent />} />
-          {/* Patients route */}
           <Route path="patients" element={<PatientDetails />} />
-          <Route path="sessions" element={<Patient />} />
+          <Route path="sessions" element={<Patient />} />
         </Routes>
       </Container>
     </>
