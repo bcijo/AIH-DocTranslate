@@ -19,7 +19,7 @@ const HeroSectionContent = () => (
         <ActionButton>Learn More</ActionButton>
       </Actions>
     </HeroText>
-    <HeroImage src="/doctor.png" alt="Patient" />
+    <HeroImage src="/patient.png" alt="Patient" />
   </HeroSection>
 );
 
