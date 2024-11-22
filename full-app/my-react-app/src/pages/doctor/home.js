@@ -5,6 +5,7 @@ import UserProfile from '../../components/UserProfile';
 import Patient from './patients';
 import PatientDetails from './patient_details';
 import styled, { keyframes } from 'styled-components';
+import Appointments from './appointments'; // Adjust path as necessary
 
 const HeroSectionContent = () => (
   <HeroSection>
@@ -46,6 +47,7 @@ const DoctorHomePage = () => {
           <Route path="home" element={<HeroSectionContent />} />
           <Route path="patients" element={<PatientDetails />} />
           <Route path="sessions" element={<Patient />} />
+          <Route path="appointments" element={<Appointments />} /> {/* Add this */}
         </Routes>
       </Container>
     </>
