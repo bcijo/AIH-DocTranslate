@@ -218,7 +218,14 @@ function Patient() {
             </ButtonContainer>
           </LeftContainer>
           <RightContainer>
-            {activePatient && <PatientName>{activePatient.name}</PatientName>}
+            {activePatient ? (
+              <PatientInfo>
+                <PatientName>{activePatient.name}</PatientName>
+                <PatientAge>Age: {activePatient.age}</PatientAge>
+              </PatientInfo>
+            ) : (
+              <SelectPatientText>Select a patient</SelectPatientText>
+            )}
             <SearchBar
               type="text"
               placeholder="Search patients..."
@@ -373,7 +380,7 @@ const SearchBar = styled.input`
 
 const PatientList = styled.div`
   width: 100%;
-  max-height: 400px;
+  max-height: 70%;
   overflow-y: auto;
   border: 1px solid #ccc;
   border-radius: 5px;
@@ -399,12 +406,28 @@ const PatientItem = styled.div`
   }
 `;
 
+const PatientInfo = styled.div`
+  text-align: right;
+  margin-bottom: 20px;
+`;
+
 const PatientName = styled.div`
   font-size: 1.5rem;
   font-weight: bold;
   color: #3a4d99;
-  margin-bottom: 20px;
+`;
+
+const PatientAge = styled.div`
+  font-size: 1rem;
+  color: #3a4d99;
+`;
+
+const SelectPatientText = styled.div`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #3a4d99;
   text-align: right;
+  margin-bottom: 20px;
 `;
 
 export default Patient;
