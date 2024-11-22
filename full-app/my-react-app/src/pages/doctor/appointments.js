@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 
 const Appointments = () => {
-    // const [slots, setSlots] = useState([]);
-    // const [newSlot, setNewSlot] = useState('');
+    const [slots, setSlots] = useState([]);
+    const [newSlot, setNewSlot] = useState('');
 
-    // const addSlot = () => {
-    //     setSlots([...slots, newSlot]);
-    //     setNewSlot('');
+    const addSlot = () => {
+        setSlots([...slots, newSlot]);
+        setNewSlot('');
     };
 
     return (
