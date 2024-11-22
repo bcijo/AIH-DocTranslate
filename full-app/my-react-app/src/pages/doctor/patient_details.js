@@ -8,7 +8,7 @@ const PatientDetails = () => {
   const [activePatient, setActivePatient] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [visits, setVisits] = useState([]);
-  const [expanded, setExpanded] = useState(false);
+  const [expandedVisits, setExpandedVisits] = useState({});
   const containerRef = useRef(null);
 
   // Fetch patients from Firestore
@@ -65,6 +65,14 @@ const PatientDetails = () => {
     };
   }, []);
 
+  // Toggle the expanded state for a specific visit
+  const toggleExpand = (visitId) => {
+    setExpandedVisits(prevState => ({
+      ...prevState,
+      [visitId]: !prevState[visitId]
+    }));
+  };
+
   return (
     <Container ref={containerRef}>
       <Heading>Patient Details</Heading>
@@ -96,31 +104,35 @@ const PatientDetails = () => {
             <VisitsList>
               {visits.length > 0 ? (
                 visits.map((visit, index) => (
-                  <VisitItem key={index}>
-                    <strong>Date:</strong> {visit.VisitDate}<br />
-                    <strong>Reason:</strong> {visit.DoctorRecommendation}
-                  </VisitItem>
+                  <React.Fragment key={index}>
+                    <VisitItem>
+                      <VisitContent>
+                        <strong>Date:</strong> {visit.VisitDate}<br />
+                        <strong>Reason:</strong> {visit.DoctorRecommendation}
+                      </VisitContent>
+                      <ExpandButton onClick={() => toggleExpand(visit.id)}>
+                        {expandedVisits[visit.id] ? 'Collapse' : 'Expand'}
+                      </ExpandButton>
+                    </VisitItem>
+                    {expandedVisits[visit.id] && (
+                      <ExpandedDetails>
+                        <DetailItem>
+                          <strong>Patient Condition:</strong> {visit.PatientCondition}
+                        </DetailItem>
+                        <DetailItem>
+                          <strong>Doctor Recommendation:</strong> {visit.DoctorRecommendation}
+                        </DetailItem>
+                        <DetailItem>
+                          <strong>Medication Prescription:</strong> {visit.MedicationPrescription}
+                        </DetailItem>
+                      </ExpandedDetails>
+                    )}
+                  </React.Fragment>
                 ))
               ) : (
                 <p>No previous visits</p>
               )}
             </VisitsList>
-            <ExpandButton onClick={() => setExpanded(!expanded)}>
-              {expanded ? 'Collapse' : 'Expand'}
-            </ExpandButton>
-            {expanded && (
-              <ExpandedDetails>
-                <DetailItem>
-                  <strong>Patient Condition:</strong> {visits[0]?.PatientCondition}
-                </DetailItem>
-                <DetailItem>
-                  <strong>Doctor Recommendation:</strong> {visits[0]?.DoctorRecommendation}
-                </DetailItem>
-                <DetailItem>
-                  <strong>Medication Prescription:</strong> {visits[0]?.MedicationPrescription}
-                </DetailItem>
-              </ExpandedDetails>
-            )}
           </DetailsContainer>
         )}
       </ContentContainer>
@@ -219,6 +231,9 @@ const VisitsList = styled.div`
 `;
 
 const VisitItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 10px;
   padding: 10px;
   background: #f7f9ff;
@@ -226,9 +241,13 @@ const VisitItem = styled.div`
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
+const VisitContent = styled.div`
+  flex: 1;
+`;
+
 const ExpandButton = styled.button`
-  margin-top: 20px;
-  padding: 10px 20px;
+  padding: 5px 10px;
+  width: 20%;
   background: #7f91f7;
   color: white;
   border: none;
@@ -242,15 +261,15 @@ const ExpandButton = styled.button`
 `;
 
 const ExpandedDetails = styled.div`
-  margin-top: 20px;
-`;
-
-const DetailItem = styled.div`
-  margin-bottom: 10px;
+  margin-top: 10px;
   padding: 10px;
   background: #e0e7ff;
   border-radius: 5px;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const DetailItem = styled.div`
+  margin-bottom: 10px;
 `;
 
 export default PatientDetails;

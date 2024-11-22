@@ -21,6 +21,8 @@ function Patient() {
   const [doctorSummary, setDoctorSummary] = useState('');
   const [medicationPrescription, setMedicationPrescription] = useState('');
   const [step, setStep] = useState(1); // 1: Patient summary, 2: Doctor summary, 3: Medication prescription
+  const [successMessage, setSuccessMessage] = useState('');
+  const [recognition, setRecognition] = useState(null);
 
   const { user } = useAuth(); // Get the authenticated user
 
@@ -51,11 +53,11 @@ function Patient() {
   };
 
   // Function to summarize text using the Flask backend
-  const handleSummarize = async () => {
+  const handleSummarize = async (text) => {
     try {
       setLoading(true);
       const response = await axios.post('http://localhost:5000/api/summarize', {
-        text: inputText,
+        text: text,
       });
       if (step === 1) {
         setSummary(response.data.summary);
@@ -77,34 +79,48 @@ function Patient() {
       console.error('Speech recognition is not supported in this browser.');
       return;
     }
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-US';
+    const recognitionInstance = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognitionInstance.lang = 'en-US';
+    recognitionInstance.continuous = true; // Allow continuous recognition
+    recognitionInstance.interimResults = true; // Allow interim results
 
-    recognition.onstart = () => {
+    recognitionInstance.onstart = () => {
       setRecognitionActive(true);
       console.log('Speech recognition started.');
     };
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      console.log(`You said: ${transcript}`);
-      setInputText(transcript);
+    recognitionInstance.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          setInputText(event.results[i][0].transcript);
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      console.log(`You said: ${interimTranscript}`);
     };
 
-    recognition.onend = () => {
-      setRecognitionActive(false);
-      console.log('Speech recognition stopped.');
-      handleSummarize();
-      setStep(step + 1); // Move to the next step
+    recognitionInstance.onend = () => {
+      if (recognitionActive) {
+        recognitionInstance.start(); // Restart recognition if it was manually stopped
+      }
     };
 
-    recognition.start();
+    recognitionInstance.start();
+    setRecognition(recognitionInstance);
   };
 
   // Stop voice input
   const stopVoiceInput = () => {
-    setRecognitionActive(false);
-    console.log('Speech recognition manually stopped.');
+    if (recognition) {
+      recognition.stop();
+      setRecognitionActive(false);
+      console.log('Speech recognition manually stopped.');
+      handleSummarize(inputText);
+      setInputText(''); // Clear input text after summarization
+      setStep(step + 1); // Move to the next step
+    }
   };
 
   // Speak translated text
@@ -150,10 +166,23 @@ function Patient() {
         VisitDate: new Date().toISOString(),
         VisitType: 'in-person',
       });
-      console.log('Visit details saved successfully');
+      setSuccessMessage('Visit details saved successfully!');
+      resetForm();
     } catch (error) {
       console.error('Error saving visit details:', error);
     }
+  };
+
+  // Function to reset the form
+  const resetForm = () => {
+    setInputText('');
+    setTranslatedText('');
+    setSummary('');
+    setDoctorSummary('');
+    setMedicationPrescription('');
+    setStep(1);
+    setActivePatient(null);
+    setSearchQuery('');
   };
 
   return (
@@ -181,6 +210,7 @@ function Patient() {
             {doctorSummary && <ResultText>Doctor Summary: {doctorSummary}</ResultText>}
             {medicationPrescription && <ResultText>Medication Prescription: {medicationPrescription}</ResultText>}
             {translatedText && <ResultText>Translated Text: {translatedText}</ResultText>}
+            {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
             <ButtonContainer>
               <Button onClick={saveVisitDetails} disabled={loading || step < 4}>
                 Save Visit Details
@@ -319,6 +349,15 @@ const ResultText = styled.p`
   margin: 15px 0;
   padding: 10px;
   background-color: rgba(127, 145, 247, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+`;
+
+const SuccessMessage = styled.p`
+  color: green;
+  margin: 15px 0;
+  padding: 10px;
+  background-color: rgba(0, 255, 0, 0.1);
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;

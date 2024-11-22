@@ -26,7 +26,7 @@ pygame.mixer.init()
 # Summarization function using Gemini
 def summarize_text(input_text):
     model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content(f"Summarize the following text: {input_text}")
+    response = model.generate_content(f"Summarize the following text into 3 bullet points: {input_text}")
     return response.text
 
 # Function to speak text using gTTS and save as MP3
