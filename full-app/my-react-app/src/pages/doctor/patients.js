@@ -64,7 +64,7 @@ function Patient() {
     try {
       setLoading(true);
       const response = await axios.post('http://localhost:5000/api/translate', {
-        text: summary,
+        text: inputText,
         target_lang: 'en',
       });
       setTranslatedText(response.data.translated_text);
@@ -82,7 +82,7 @@ function Patient() {
       return;
     }
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-US';
+    recognition.lang = getLanguageCode(selectedLanguage);
 
     recognition.onstart = () => {
       setRecognitionActive(true);
@@ -134,6 +134,7 @@ function Patient() {
       tamil: 'ta-IN',
       malayalam: 'ml-IN',
       hindi: 'hi-IN',
+      english: 'en-US',
     };
     return languageMap[language] || 'en-US';
   };
@@ -144,7 +145,17 @@ function Patient() {
       <Container>
         <ContentContainer>
           <LeftContainer>
-            <Title>Doctor Translator & Summarizer</Title>
+            <Title>Doctor Translator</Title>
+            <DropdownContainer>
+              <select value={selectedLanguage} onChange={handleLanguageChange}>
+                <option value="english">English</option>
+                <option value="telugu">Telugu</option>
+                <option value="kannada">Kannada</option>
+                <option value="tamil">Tamil</option>
+                <option value="malayalam">Malayalam</option>
+                <option value="hindi">Hindi</option>
+              </select>
+            </DropdownContainer>
             <TextArea
               placeholder="Enter text here..."
               value={inputText}
@@ -162,15 +173,12 @@ function Patient() {
                 <StyledIcon as={FaVolumeUp} size={30} />
               </IconCircle>
             </IconContainer>
+            
             <ButtonContainer>
-              <Button onClick={handleSummarize} disabled={loading}>
-                Summarize
-              </Button>
               <Button onClick={handleTranslate} disabled={loading}>
                 Translate
               </Button>
             </ButtonContainer>
-            {summary && <ResultText>Summary: {summary}</ResultText>}
             {translatedText && <ResultText>Translated Text: {translatedText}</ResultText>}
           </LeftContainer>
           <RightContainer>
@@ -274,86 +282,77 @@ const IconCircle = styled.div`
   transition: transform 0.2s, box-shadow 0.2s;
 
   &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    transform: scale(1.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   }
 `;
 
 const StyledIcon = styled.div`
-  color: ${props => props.active ? 'red' : '#5569af'};
+  color: ${({ active }) => (active ? '#4caf50' : '#000')};
+`;
+
+const DropdownContainer = styled.div`
+  margin: 15px 0;
+  select {
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #7f91f7;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+  }
 `;
 
 const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin: 15px 0;
+  margin-top: 20px;
 `;
 
 const Button = styled.button`
   padding: 10px 20px;
-  border: none;
-  border-radius: 15px;
-  background: linear-gradient(90deg, #7f91f7, #a5b8ff);
+  background-color: #3a4d99;
   color: white;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    background: linear-gradient(90deg, #a5b8ff, #7f91f7);
-  }
 
   &:disabled {
-    opacity: 0.5;
+    background-color: #d0d0d0;
     cursor: not-allowed;
   }
 `;
 
 const ResultText = styled.p`
-  color: #5569af;
-  margin: 15px 0;
-  padding: 10px;
-  background-color: rgba(127, 145, 247, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 15px;
+  font-size: 1.1rem;
+  color: #333;
 `;
 
 const SearchBar = styled.input`
-  width: 90%;
   padding: 10px;
-  margin-bottom: 20px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
   font-size: 1rem;
-`;
-
-const PatientList = styled.div`
   width: 100%;
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 10px;
-  background: #f7f9ff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
 `;
 
-const PatientItem = styled.div`
+const PatientList = styled.ul`
+  list-style-type: none;
+  padding: 0;
+  width: 100%;
+`;
+
+const PatientItem = styled.li`
   padding: 10px;
-  border-bottom: 1px solid #ccc;
   cursor: pointer;
-  background: ${({ active }) => (active ? '#e0e7ff' : 'transparent')};
-  color: ${({ active }) => (active ? '#5a6ea1' : '#7f91f7')};
+  background-color: ${({ active }) => (active ? '#b0c9ff' : '#fff')};
   border-radius: 5px;
-  margin-bottom: 10px;
-  box-shadow: ${({ active }) =>
-    active ? '0px 4px 8px rgba(0, 0, 0, 0.2)' : '0px 2px 4px rgba(0, 0, 0, 0.1)'};
-  transition: box-shadow 0.3s ease, background 0.3s ease;
+  margin: 5px 0;
+  transition: background-color 0.3s;
 
   &:hover {
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: #e0eaff;
   }
 `;
 

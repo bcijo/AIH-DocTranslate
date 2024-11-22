@@ -9,16 +9,21 @@ function Doctor() {
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [recognitionActive, setRecognitionActive] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('telugu');
-  const [synth, setSynth] = useState(window.speechSynthesis);
-  const [utterance, setUtterance] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('english');
 
-  // Function to handle language selection
+  const languageMap = {
+    telugu: 'te-IN',
+    hindi: 'hi-IN',
+    tamil: 'ta-IN',
+    malayalam: 'ml-IN',
+    kannada: 'kn-IN',
+    english: 'en-US'
+  };
+
   const handleLanguageChange = (e) => {
     setSelectedLanguage(e.target.value);
   };
 
-  // Function to summarize text using the Flask backend
   const handleSummarize = async () => {
     try {
       setLoading(true);
@@ -33,12 +38,11 @@ function Doctor() {
     }
   };
 
-  // Function to translate summarized text using the Flask backend
   const handleTranslate = async () => {
     try {
       setLoading(true);
       const response = await axios.post('http://localhost:5000/api/translate', {
-        text: summary,
+        text: inputText,
         target_lang: selectedLanguage,
       });
       setTranslatedText(response.data.translated_text);
@@ -49,14 +53,13 @@ function Doctor() {
     }
   };
 
-  // Start voice input
   const startVoiceInput = () => {
     if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
       console.error('Speech recognition is not supported in this browser.');
       return;
     }
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-US';
+    recognition.lang = languageMap[selectedLanguage];
 
     recognition.onstart = () => {
       setRecognitionActive(true);
@@ -77,103 +80,114 @@ function Doctor() {
     recognition.start();
   };
 
-  // Stop voice input
   const stopVoiceInput = () => {
     setRecognitionActive(false);
     console.log('Speech recognition manually stopped.');
   };
 
-  // Speak translated text
-  const handleSpeak = () => {
+  const handleSpeak = async () => {
     if (!translatedText) return;
 
-    const newUtterance = new SpeechSynthesisUtterance(translatedText);
-    newUtterance.lang = getLanguageCode(selectedLanguage);
-    synth.cancel(); // Stop any ongoing speech
-    synth.speak(newUtterance);
-    setUtterance(newUtterance);
+    try {
+      const response = await axios.post('http://localhost:5000/api/speak', {
+        text: translatedText,
+        lang: getLanguageCode(selectedLanguage),
+      });
+
+      console.log(response.data.message);
+    } catch (error) {
+      console.error('Speech Error:', error);
+    }
   };
 
-  // Stop speaking
-  const stopSpeaking = () => {
-    if (synth) synth.cancel();
-    setUtterance(null);
+  const handleStopSpeech = async () => {
+    try {
+      await axios.post('http://localhost:5000/api/stop-speech');
+      console.log('Speech stopped');
+    } catch (error) {
+      console.error('Error stopping speech:', error);
+    }
   };
 
-  // Language code mapper
   const getLanguageCode = (language) => {
     const languageMap = {
-      telugu: 'te-IN',
-      kannada: 'kn-IN',
-      tamil: 'ta-IN',
-      malayalam: 'ml-IN',
-      hindi: 'hi-IN',
+      telugu: 'te',
+      hindi: 'hi',
+      tamil: 'ta',
+      malayalam: 'ml',
+      kannada: 'kn',
     };
-    return languageMap[language] || 'en-US';
-  };
-
-  const containerStyle = {
-    margin: '20px',
-    textAlign: 'center',
-    fontFamily: 'Arial, sans-serif',
+    return languageMap[language] || 'en';
   };
 
   return (
-    <>
-      <GlobalStyle />
-      <Container>
-        <Title>Patient Translator & Summarizer</Title>
-        <TextArea
-          placeholder="Enter text here..."
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          rows={6}
-        />
-        <IconContainer>
-          <IconCircle onClick={recognitionActive ? stopVoiceInput : startVoiceInput}>
-            <StyledIcon as={FaMicrophone} 
-              size={30} 
-              active={recognitionActive}
-            />
+    <Container>
+      <Title>Patient Translate & Summary</Title>
+      <DropdownContainer>
+        <select 
+          value={selectedLanguage} 
+          onChange={handleLanguageChange} 
+        >
+          <option value="english">English</option>
+          <option value="telugu">Telugu</option>
+          <option value="hindi">Hindi</option>
+          <option value="tamil">Tamil</option>
+          <option value="malayalam">Malayalam</option>
+          <option value="kannada">Kannada</option>
+        </select>
+      </DropdownContainer>
+
+      <TextArea
+        value={inputText}
+        onChange={(e) => setInputText(e.target.value)}
+        placeholder="Enter text for translation or voice input"
+        rows="4"
+        cols="50"
+      />
+      <IconContainer>
+        {recognitionActive ? (
+          <IconCircle onClick={stopVoiceInput}>
+            <StyledIcon><FaStop /></StyledIcon>
           </IconCircle>
-          <IconCircle onClick={stopSpeaking}>
-            <StyledIcon as={FaStop} 
-              size={30} 
-            />
+        ) : (
+          <IconCircle onClick={startVoiceInput}>
+            <StyledIcon><FaMicrophone /></StyledIcon>
           </IconCircle>
-          <IconCircle onClick={handleSpeak}>
-            <StyledIcon as={FaVolumeUp} 
-              size={30} 
-            />
-          </IconCircle>
-        </IconContainer>
-        <LanguageContainer>
-          <Label htmlFor="languageSelect">Select Language:</Label>
-          <LanguageSelect 
-            id="languageSelect" 
-            value={selectedLanguage} 
-            onChange={handleLanguageChange}
-          >
-            <option value="telugu">Telugu</option>
-            <option value="kannada">Kannada</option>
-            <option value="tamil">Tamil</option>
-            <option value="malayalam">Malayalam</option>
-            <option value="hindi">Hindi</option>
-          </LanguageSelect>
-        </LanguageContainer>
-        <ButtonContainer>
-          <Button onClick={handleSummarize} disabled={loading}>
-            Summarize
-          </Button>
-          <Button onClick={handleTranslate} disabled={loading}>
-            Translate
-          </Button>
-        </ButtonContainer>
+        )}
+        <IconCircle onClick={handleSpeak}>
+          <StyledIcon><FaVolumeUp /></StyledIcon>
+        </IconCircle>
+        <IconCircle onClick={handleStopSpeech}>
+          <StyledIcon><FaStop /></StyledIcon>
+        </IconCircle>
+      </IconContainer>
+      <ButtonContainer>
+      <Button onClick={handleSummarize} disabled={loading}>
+          Summarize
+        </Button>
+        <Button onClick={handleTranslate} disabled={loading}>
+          Translate
+        </Button>
         
-        {summary && <ResultText>Summary: {summary}</ResultText>}
-        {translatedText && <ResultText>Translated Text: {translatedText}</ResultText>}
-      </Container>
-    </>
+      </ButtonContainer>
+      {summary && (
+        <ResultText>
+          <h3>Summary:</h3>
+          <p>{summary}</p>
+        </ResultText>
+      )}
+
+      {translatedText && (
+        <ResultText>
+          <h3>Translated Text:</h3>
+          <p>{translatedText}</p>
+        </ResultText>
+      )}
+
+      
+
+      
+    </Container>
   );
 }
 
@@ -192,12 +206,16 @@ const Container = styled.div`
   padding: 20px;
   background: linear-gradient(135deg, #d8e9ff 0%, #ffeef8 100%);
   min-height: 100vh;
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
 `;
 
 const Title = styled.h2`
   color: #3a4d99;
   font-size: 2rem;
   margin-bottom: 20px;
+  text-align: center;
 `;
 
 const TextArea = styled.textarea`
@@ -208,6 +226,49 @@ const TextArea = styled.textarea`
   border-radius: 8px;
   resize: none;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+`;
+
+const DropdownContainer = styled.div`
+  margin: 15px 0;
+  select {
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #7f91f7;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+  }
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 20px;
+`;
+
+const Button = styled.button`
+  padding: 10px 20px;
+  background-color: #3a4d99;
+  color: white;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:disabled {
+    background-color: #d0d0d0;
+    cursor: not-allowed;
+  }
+`;
+
+const ResultText = styled.p`
+  margin-top: 15px;
+  font-size: 1.1rem;
+  color: #333;
 `;
 
 const IconContainer = styled.div`
@@ -230,70 +291,17 @@ const IconCircle = styled.div`
   transition: transform 0.2s, box-shadow 0.2s;
 
   &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    transform: scale(1.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   }
 `;
 
 const StyledIcon = styled.div`
-  color: ${props => props.active ? 'red' : '#5569af'};
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin: 15px 0;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  border: none;
-  border-radius: 15px;
-  background: linear-gradient(90deg, #7f91f7, #a5b8ff);
-  color: white;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    background: linear-gradient(90deg, #a5b8ff, #7f91f7);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ResultText = styled.p`
-  color: #5569af;
-  margin: 15px 0;
-  padding: 10px;
-  background-color: rgba(127, 145, 247, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-`;
-
-const LanguageContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 15px 0;
-  gap: 10px;
-`;
-
-const Label = styled.label`
-  color: #3a4d99;
-`;
-
-const LanguageSelect = styled.select`
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #7f91f7;
-  background-color: white;
-  color: #3a4d99;
+  color: ${({ active }) => (active ? '#4caf50' : '#000')};
 `;
 
 export default Doctor;
+
+
+
 
