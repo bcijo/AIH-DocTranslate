@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { auth, db } from '../config/firebaseConfig';
-import { 
-  createUserWithEmailAndPassword, 
+import {
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider
@@ -24,7 +24,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
-    if (!role) {
+    if (isSignUp && !role) {
       setError('Please select a role (Doctor or Patient).');
       return;
     }
@@ -34,26 +34,26 @@ const Login = () => {
         // Handle Sign Up
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
+
         // Save basic user data to Firestore
         await setDoc(doc(db, 'users', user.uid), {
           email: user.email,
           role: role,
           isProfileComplete: false // Add this flag
         });
-        
+
         setCurrentUser(user);
         setShowForm(true);
-        
+
       } else {
         // Handle Sign In
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
+
         // Check if profile is complete
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const userData = userDoc.data();
-        
+
         if (userData && !userData.isProfileComplete) {
           setCurrentUser(user);
           setShowForm(true);
@@ -66,7 +66,7 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!role) {
+    if (isSignUp && !role) {
       setError('Please select a role first');
       return;
     }
@@ -78,7 +78,7 @@ const Login = () => {
 
       // Check if user exists in Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
-      
+
       if (!userDoc.exists()) {
         // New Google user - create profile
         await setDoc(doc(db, 'users', user.uid), {
@@ -115,11 +115,10 @@ const Login = () => {
       <FormCard>
         <Title>{isSignUp ? 'Welcome to DocTranslate' : 'Welcome Back at DocTranslate'}</Title>
         <Subtitle>
-          {isSignUp 
-            ? 'Please sign up to continue' 
+          {isSignUp
+            ? 'Please sign up to continue'
             : 'Please login to continue'
           }
-
         </Subtitle>
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -147,18 +146,20 @@ const Login = () => {
             />
           </InputGroup>
 
-          <InputGroup>
-            <Label>Role</Label>
-            <Select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              required
-            >
-              <option value="">Select Role</option>
-              <option value="Doctor">Doctor</option>
-              <option value="Patient">Patient</option>
-            </Select>
-          </InputGroup>
+          {isSignUp && (
+            <InputGroup>
+              <Label>Role</Label>
+              <Select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                required
+              >
+                <option value="">Select Role</option>
+                <option value="Doctor">Doctor</option>
+                <option value="Patient">Patient</option>
+              </Select>
+            </InputGroup>
+          )}
 
           <Button type="submit">
             {isSignUp ? 'Sign Up' : 'Sign In'}
@@ -172,8 +173,8 @@ const Login = () => {
           </GoogleButton>
 
           <ToggleText>
-            {isSignUp 
-              ? 'Already have an account? ' 
+            {isSignUp
+              ? 'Already have an account? '
               : "Don't have an account? "
             }
             <ToggleLink onClick={() => setIsSignUp(!isSignUp)}>
@@ -186,6 +187,16 @@ const Login = () => {
   );
 };
 
+// Keyframes for animation
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+`;
+
 // Styled Components
 const Container = styled.div`
   display: flex;
@@ -193,7 +204,7 @@ const Container = styled.div`
   align-items: center;
   width: 100vw;
   height: 100vh;
-  background-image: url('/background.jpg');
+  background-image: url('/login_background-dalle.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -211,21 +222,24 @@ const FormCard = styled.div`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 400px;
+  animation: ${fadeIn} 1s ease-in-out;
 `;
 
 const Title = styled.h1`
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: #3a4d99;
   margin-bottom: 8px;
   text-align: center;
+  animation: ${fadeIn} 1.5s ease-in-out;
 `;
 
 const Subtitle = styled.p`
   font-size: 14px;
-  color: #666;
+  color: #5569af;
   margin-bottom: 24px;
   text-align: center;
+  animation: ${fadeIn} 2s ease-in-out;
 `;
 
 const Form = styled.form`
@@ -254,7 +268,7 @@ const Input = styled.input`
   transition: border-color 0.2s;
 
   &:focus {
-    border-color: #007bff;
+    border-color: #7f91f7;
     outline: none;
   }
 `;
@@ -267,13 +281,13 @@ const Select = styled.select`
   background-color: white;
 
   &:focus {
-    border-color: #007bff;
+    border-color: #7f91f7;
     outline: none;
   }
 `;
 
 const Button = styled.button`
-  background-color: #007bff;
+  background: linear-gradient(90deg, #7f91f7, #a5b8ff);
   color: white;
   padding: 12px;
   border: none;
@@ -281,12 +295,12 @@ const Button = styled.button`
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background 0.2s;
   width: 100%;
   text-align: center;
 
   &:hover {
-    background-color: #0056b3;
+    background: linear-gradient(90deg, #a5b8ff, #7f91f7);
   }
 `;
 
@@ -349,7 +363,7 @@ const ToggleText = styled.p`
 `;
 
 const ToggleLink = styled.span`
-  color: #007bff;
+  color: #7f91f7;
   cursor: pointer;
 `;
 
