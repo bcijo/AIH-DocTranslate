@@ -176,6 +176,7 @@ const TabContainer = styled.div`
   padding: 10px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
+  max-height: 600px; /* Set a maximum height for scrolling */
   width: ${({ activePatient }) => (activePatient ? '40%' : '60%')};
   margin-right: ${({ activePatient }) => (activePatient ? '20px' : '0')};
   transition: width 0.3s ease, margin-right 0.3s ease;
@@ -211,11 +212,12 @@ const Age = styled.div`
 `;
 
 const DetailsContainer = styled.div`
-  width: 800px;
+  width: 50%;
   padding: 20px;
   background: #ffe6f2; /* Light shade of pink */
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
+  max-height: 60%; /* Set a maximum height for scrolling */
   overflow-y: auto;
   color: #5a6ea1; /* Purple text */
 `;
