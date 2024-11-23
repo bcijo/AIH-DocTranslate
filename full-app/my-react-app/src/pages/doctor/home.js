@@ -30,7 +30,7 @@ const DoctorHomePage = () => {
       <Container>
         <Navbar>
           <Logo>
-            <LogoImage src="/title_image.png" alt="DocTranslate Logo" />
+            <LogoImage src="/logo2.jpg" alt="DocTranslate Logo" />
             <LogoText>DocTranslate</LogoText>
           </Logo>
           <NavLinks>
