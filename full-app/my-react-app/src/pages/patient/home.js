@@ -5,6 +5,7 @@ import { NavLink, Route, Routes } from 'react-router-dom';
 import UserProfile from '../../components/UserProfile';
 import styled, { keyframes } from 'styled-components';
 import Doctor from './doctors'; // Import Doctor component
+import Availability from './availability';
 
 const HeroSectionContent = () => (
   <HeroSection>
@@ -46,6 +47,7 @@ const DoctorHomePage = () => {
           <Route path="home" element={<HeroSectionContent />} />
           {/* Patients route */}
           <Route path="doctors" element={<Doctor/>} />
+          <Route path="availability" element={<Availability />} />
           <Route path="sessions" element={<Doctor/>} />
         </Routes>
       </Container>
