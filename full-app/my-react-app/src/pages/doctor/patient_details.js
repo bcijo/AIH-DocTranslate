@@ -7,6 +7,8 @@ const PatientDetails = () => {
   const [patients, setPatients] = useState([]);
   const [activePatient, setActivePatient] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [visits, setVisits] = useState([]);
+  const [expandedVisits, setExpandedVisits] = useState({});
   const containerRef = useRef(null);
 
   // Fetch patients from Firestore
@@ -24,6 +26,25 @@ const PatientDetails = () => {
 
     fetchPatients();
   }, []);
+
+  // Fetch visits for the active patient
+  useEffect(() => {
+    const fetchVisits = async () => {
+      if (activePatient) {
+        try {
+          const visitsCollection = collection(db, 'visits');
+          const visitsQuery = await getDocs(visitsCollection);
+          const visitsData = visitsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const patientVisits = visitsData.filter(visit => visit.PatientID === activePatient.id);
+          setVisits(patientVisits);
+        } catch (error) {
+          console.error('Error fetching visits:', error);
+        }
+      }
+    };
+
+    fetchVisits();
+  }, [activePatient]);
 
   // Filter patients based on the search query
   const filteredPatients = patients.filter(patient =>
@@ -43,6 +64,14 @@ const PatientDetails = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Toggle the expanded state for a specific visit
+  const toggleExpand = (visitId) => {
+    setExpandedVisits(prevState => ({
+      ...prevState,
+      [visitId]: !prevState[visitId]
+    }));
+  };
 
   return (
     <Container ref={containerRef}>
@@ -73,12 +102,32 @@ const PatientDetails = () => {
               <Age>Age: {activePatient.age}</Age>
             </PatientHeader>
             <VisitsList>
-              {activePatient.visits && activePatient.visits.length > 0 ? (
-                activePatient.visits.map((visit, index) => (
-                  <VisitItem key={index}>
-                    <strong>Date:</strong> {visit.date}<br />
-                    <strong>Reason:</strong> {visit.reason}
-                  </VisitItem>
+              {visits.length > 0 ? (
+                visits.map((visit, index) => (
+                  <React.Fragment key={index}>
+                    <VisitItem>
+                      <VisitContent>
+                        <strong>Date:</strong> {visit.VisitDate}<br />
+                        <strong>Reason:</strong> {visit.DoctorRecommendation}
+                      </VisitContent>
+                      <ExpandButton onClick={() => toggleExpand(visit.id)}>
+                        {expandedVisits[visit.id] ? 'Collapse' : 'Expand'}
+                      </ExpandButton>
+                    </VisitItem>
+                    {expandedVisits[visit.id] && (
+                      <ExpandedDetails>
+                        <DetailItem>
+                          <strong>Patient Condition:</strong> {visit.PatientCondition}
+                        </DetailItem>
+                        <DetailItem>
+                          <strong>Doctor Recommendation:</strong> {visit.DoctorRecommendation}
+                        </DetailItem>
+                        <DetailItem>
+                          <strong>Medication Prescription:</strong> {visit.MedicationPrescription}
+                        </DetailItem>
+                      </ExpandedDetails>
+                    )}
+                  </React.Fragment>
                 ))
               ) : (
                 <p>No previous visits</p>
@@ -127,7 +176,7 @@ const TabContainer = styled.div`
   padding: 10px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
-  width: ${({ activePatient }) => (activePatient ? '40%' : '40%')};
+  width: ${({ activePatient }) => (activePatient ? '40%' : '60%')};
   margin-right: ${({ activePatient }) => (activePatient ? '20px' : '0')};
   transition: width 0.3s ease, margin-right 0.3s ease;
 `;
@@ -182,11 +231,45 @@ const VisitsList = styled.div`
 `;
 
 const VisitItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 10px;
   padding: 10px;
   background: #f7f9ff;
   border-radius: 5px;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const VisitContent = styled.div`
+  flex: 1;
+`;
+
+const ExpandButton = styled.button`
+  padding: 5px 10px;
+  width: 20%;
+  background: #7f91f7;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+
+  &:hover {
+    background: #5a6ea1;
+  }
+`;
+
+const ExpandedDetails = styled.div`
+  margin-top: 10px;
+  padding: 10px;
+  background: #e0e7ff;
+  border-radius: 5px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const DetailItem = styled.div`
+  margin-bottom: 10px;
 `;
 
 export default PatientDetails;

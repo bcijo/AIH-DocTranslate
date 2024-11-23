@@ -3,7 +3,8 @@ import axios from 'axios';
 import { FaMicrophone, FaStop, FaVolumeUp } from 'react-icons/fa';
 import styled, { createGlobalStyle } from 'styled-components';
 import { db } from '../../config/firebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { useAuth } from '../../hooks/AuthProvider';
 
 function Patient() {
   const [inputText, setInputText] = useState('');
@@ -17,6 +18,13 @@ function Patient() {
   const [patients, setPatients] = useState([]);
   const [activePatient, setActivePatient] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [doctorSummary, setDoctorSummary] = useState('');
+  const [medicationPrescription, setMedicationPrescription] = useState('');
+  const [step, setStep] = useState(1); // 1: Patient summary, 2: Doctor summary, 3: Medication prescription
+  const [successMessage, setSuccessMessage] = useState('');
+  const [recognition, setRecognition] = useState(null);
+
+  const { user } = useAuth(); // Get the authenticated user
 
   // Fetch patients from Firestore
   useEffect(() => {
@@ -45,31 +53,21 @@ function Patient() {
   };
 
   // Function to summarize text using the Flask backend
-  const handleSummarize = async () => {
+  const handleSummarize = async (text) => {
     try {
       setLoading(true);
       const response = await axios.post('http://localhost:5000/api/summarize', {
-        text: inputText,
+        text: text,
       });
-      setSummary(response.data.summary);
+      if (step === 1) {
+        setSummary(response.data.summary);
+      } else if (step === 2) {
+        setDoctorSummary(response.data.summary);
+      } else if (step === 3) {
+        setMedicationPrescription(response.data.summary);
+      }
     } catch (error) {
       console.error('Summarization Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to translate summarized text using the Flask backend
-  const handleTranslate = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.post('http://localhost:5000/api/translate', {
-        text: summary,
-        target_lang: 'en',
-      });
-      setTranslatedText(response.data.translated_text);
-    } catch (error) {
-      console.error('Translation Error:', error);
     } finally {
       setLoading(false);
     }
@@ -81,32 +79,48 @@ function Patient() {
       console.error('Speech recognition is not supported in this browser.');
       return;
     }
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-US';
+    const recognitionInstance = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognitionInstance.lang = 'en-US';
+    recognitionInstance.continuous = true; // Allow continuous recognition
+    recognitionInstance.interimResults = true; // Allow interim results
 
-    recognition.onstart = () => {
+    recognitionInstance.onstart = () => {
       setRecognitionActive(true);
       console.log('Speech recognition started.');
     };
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      console.log(`You said: ${transcript}`);
-      setInputText(transcript);
+    recognitionInstance.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          setInputText(event.results[i][0].transcript);
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      console.log(`You said: ${interimTranscript}`);
     };
 
-    recognition.onend = () => {
-      setRecognitionActive(false);
-      console.log('Speech recognition stopped.');
+    recognitionInstance.onend = () => {
+      if (recognitionActive) {
+        recognitionInstance.start(); // Restart recognition if it was manually stopped
+      }
     };
 
-    recognition.start();
+    recognitionInstance.start();
+    setRecognition(recognitionInstance);
   };
 
   // Stop voice input
   const stopVoiceInput = () => {
-    setRecognitionActive(false);
-    console.log('Speech recognition manually stopped.');
+    if (recognition) {
+      recognition.stop();
+      setRecognitionActive(false);
+      console.log('Speech recognition manually stopped.');
+      handleSummarize(inputText);
+      setInputText(''); // Clear input text after summarization
+      setStep(step + 1); // Move to the next step
+    }
   };
 
   // Speak translated text
@@ -138,6 +152,39 @@ function Patient() {
     return languageMap[language] || 'en-US';
   };
 
+  // Function to save visit details to Firestore
+  const saveVisitDetails = async () => {
+    try {
+      const visitsCollection = collection(db, 'visits');
+      await addDoc(visitsCollection, {
+        DoctorID: user.uid,
+        PatientID: activePatient.id,
+        PatientName: activePatient.name,
+        PatientCondition: summary,
+        DoctorRecommendation: doctorSummary,
+        MedicationPrescription: medicationPrescription,
+        VisitDate: new Date().toISOString(),
+        VisitType: 'in-person',
+      });
+      setSuccessMessage('Visit details saved successfully!');
+      resetForm();
+    } catch (error) {
+      console.error('Error saving visit details:', error);
+    }
+  };
+
+  // Function to reset the form
+  const resetForm = () => {
+    setInputText('');
+    setTranslatedText('');
+    setSummary('');
+    setDoctorSummary('');
+    setMedicationPrescription('');
+    setStep(1);
+    setActivePatient(null);
+    setSearchQuery('');
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -145,12 +192,6 @@ function Patient() {
         <ContentContainer>
           <LeftContainer>
             <Title>Doctor Translator & Summarizer</Title>
-            <TextArea
-              placeholder="Enter text here..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              rows={6}
-            />
             <IconContainer>
               <IconCircle onClick={recognitionActive ? stopVoiceInput : startVoiceInput}>
                 <StyledIcon as={FaMicrophone} size={30} active={recognitionActive} />
@@ -162,18 +203,29 @@ function Patient() {
                 <StyledIcon as={FaVolumeUp} size={30} />
               </IconCircle>
             </IconContainer>
+            {step === 1 && <ResultText>Record Patient Problem</ResultText>}
+            {step === 2 && <ResultText>Record Doctor Feedback</ResultText>}
+            {step === 3 && <ResultText>Record Medication Prescribed</ResultText>}
+            {summary && <ResultText>Patient Summary: {summary}</ResultText>}
+            {doctorSummary && <ResultText>Doctor Summary: {doctorSummary}</ResultText>}
+            {medicationPrescription && <ResultText>Medication Prescription: {medicationPrescription}</ResultText>}
+            {translatedText && <ResultText>Translated Text: {translatedText}</ResultText>}
+            {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
             <ButtonContainer>
-              <Button onClick={handleSummarize} disabled={loading}>
-                Summarize
-              </Button>
-              <Button onClick={handleTranslate} disabled={loading}>
-                Translate
+              <Button onClick={saveVisitDetails} disabled={loading || step < 4}>
+                Save Visit Details
               </Button>
             </ButtonContainer>
-            {summary && <ResultText>Summary: {summary}</ResultText>}
-            {translatedText && <ResultText>Translated Text: {translatedText}</ResultText>}
           </LeftContainer>
           <RightContainer>
+            {activePatient ? (
+              <PatientInfo>
+                <PatientName>{activePatient.name}</PatientName>
+                <PatientAge>Age: {activePatient.age}</PatientAge>
+              </PatientInfo>
+            ) : (
+              <SelectPatientText>Select a patient</SelectPatientText>
+            )}
             <SearchBar
               type="text"
               placeholder="Search patients..."
@@ -230,7 +282,6 @@ const LeftContainer = styled.div`
 
 const RightContainer = styled.div`
   width: 30%;
-  margin-top: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -242,16 +293,6 @@ const Title = styled.h2`
   font-size: 2rem;
   margin-bottom: 20px;
   text-align: center;
-`;
-
-const TextArea = styled.textarea`
-  width: 80%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #7f91f7;
-  border-radius: 8px;
-  resize: none;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
 const IconContainer = styled.div`
@@ -319,6 +360,15 @@ const ResultText = styled.p`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
+const SuccessMessage = styled.p`
+  color: green;
+  margin: 15px 0;
+  padding: 10px;
+  background-color: rgba(0, 255, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+`;
+
 const SearchBar = styled.input`
   width: 90%;
   padding: 10px;
@@ -330,14 +380,13 @@ const SearchBar = styled.input`
 
 const PatientList = styled.div`
   width: 100%;
-  max-height: 400px;
+  max-height: 70%;
   overflow-y: auto;
   border: 1px solid #ccc;
   border-radius: 5px;
   padding: 10px;
   background: #f7f9ff;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
 `;
 
 const PatientItem = styled.div`
@@ -355,6 +404,30 @@ const PatientItem = styled.div`
   &:hover {
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
   }
+`;
+
+const PatientInfo = styled.div`
+  text-align: right;
+  margin-bottom: 20px;
+`;
+
+const PatientName = styled.div`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #3a4d99;
+`;
+
+const PatientAge = styled.div`
+  font-size: 1rem;
+  color: #3a4d99;
+`;
+
+const SelectPatientText = styled.div`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #3a4d99;
+  text-align: right;
+  margin-bottom: 20px;
 `;
 
 export default Patient;
