@@ -1,173 +1,256 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { FaMicrophone, FaStop, FaVolumeUp } from 'react-icons/fa';
+import React, { useState, useEffect, useRef } from 'react';
+import styled from 'styled-components';
+import { db } from '../../config/firebaseConfig';
+import { collection, getDocs } from 'firebase/firestore';
 
-function Doctor() {
-  const [inputText, setInputText] = useState('');
-  const [translatedText, setTranslatedText] = useState('');
-  const [summary, setSummary] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [recognitionActive, setRecognitionActive] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('telugu');
-  const [synth, setSynth] = useState(window.speechSynthesis);
-  const [utterance, setUtterance] = useState(null);
+const DoctorDetails = () => {
+  const [doctors, setDoctors] = useState([]);
+  const [activeDoctor, setActiveDoctor] = useState(null);
+  const [visits, setVisits] = useState([]);
+  const [expandedVisits, setExpandedVisits] = useState({});
+  const containerRef = useRef(null);
 
-  // Function to handle language selection
-  const handleLanguageChange = (e) => {
-    setSelectedLanguage(e.target.value);
-  };
-
-  // Function to summarize text using the Flask backend
-  const handleSummarize = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.post('http://localhost:5000/api/summarize', {
-        text: inputText,
-      });
-      setSummary(response.data.summary);
-    } catch (error) {
-      console.error('Summarization Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to translate summarized text using the Flask backend
-  const handleTranslate = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.post('http://localhost:5000/api/translate', {
-        text: summary,
-        target_lang: selectedLanguage,
-      });
-      setTranslatedText(response.data.translated_text);
-    } catch (error) {
-      console.error('Translation Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Start voice input
-  const startVoiceInput = () => {
-    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-      console.error('Speech recognition is not supported in this browser.');
-      return;
-    }
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setRecognitionActive(true);
-      console.log('Speech recognition started.');
+  // Fetch doctors from Firestore
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const doctorsCollection = collection(db, 'doctors'); // Assuming collection name is "doctors"
+        const doctorDocs = await getDocs(doctorsCollection);
+        const doctorData = doctorDocs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setDoctors(doctorData);
+      } catch (error) {
+        console.error('Error fetching doctors:', error);
+      }
     };
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      console.log(`You said: ${transcript}`);
-      setInputText(transcript);
+    fetchDoctors();
+  }, []);
+
+  // Fetch visits for the active doctor
+  useEffect(() => {
+    const fetchVisits = async () => {
+      if (activeDoctor) {
+        try {
+          const visitsCollection = collection(db, 'visits');
+          const visitsQuery = await getDocs(visitsCollection);
+          const visitsData = visitsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const doctorVisits = visitsData.filter(visit => visit.DoctorID === activeDoctor.id);
+          setVisits(doctorVisits);
+        } catch (error) {
+          console.error('Error fetching visits:', error);
+        }
+      }
     };
 
-    recognition.onend = () => {
-      setRecognitionActive(false);
-      console.log('Speech recognition stopped.');
+    fetchVisits();
+  }, [activeDoctor]);
+
+  // Handle clicks outside the doctor list and details container
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setActiveDoctor(null);
+      }
     };
 
-    recognition.start();
-  };
-
-  // Stop voice input
-  const stopVoiceInput = () => {
-    setRecognitionActive(false);
-    console.log('Speech recognition manually stopped.');
-  };
-
-  // Speak translated text
-  const handleSpeak = () => {
-    if (!translatedText) return;
-
-    const newUtterance = new SpeechSynthesisUtterance(translatedText);
-    newUtterance.lang = getLanguageCode(selectedLanguage);
-    synth.cancel(); // Stop any ongoing speech
-    synth.speak(newUtterance);
-    setUtterance(newUtterance);
-  };
-
-  // Stop speaking
-  const stopSpeaking = () => {
-    if (synth) synth.cancel();
-    setUtterance(null);
-  };
-
-  // Language code mapper
-  const getLanguageCode = (language) => {
-    const languageMap = {
-      telugu: 'te-IN',
-      kannada: 'kn-IN',
-      tamil: 'ta-IN',
-      malayalam: 'ml-IN',
-      hindi: 'hi-IN',
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-    return languageMap[language] || 'en-US';
-  };
+  }, []);
 
-  const containerStyle = {
-    margin: '20px',
-    textAlign: 'center',
-    fontFamily: 'Arial, sans-serif',
+  // Toggle the expanded state for a specific visit
+  const toggleExpand = (visitId) => {
+    setExpandedVisits(prevState => ({
+      ...prevState,
+      [visitId]: !prevState[visitId]
+    }));
   };
 
   return (
-    <div style={containerStyle}>
-      <h2>Patient Translator & Summarizer</h2>
-      <textarea
-        placeholder="Enter text here..."
-        value={inputText}
-        onChange={(e) => setInputText(e.target.value)}
-        rows={6}
-        style={{ width: '80%', marginBottom: '10px', padding: '10px' }}
-      />
-      <div>
-        <FaMicrophone
-          size={30}
-          style={{ margin: '10px', cursor: 'pointer', color: recognitionActive ? 'red' : 'black' }}
-          onClick={recognitionActive ? stopVoiceInput : startVoiceInput}
-        />
-        <FaStop
-          size={30}
-          style={{ margin: '10px', cursor: 'pointer', color: 'black' }}
-          onClick={stopSpeaking}
-        />
-        <FaVolumeUp
-          size={30}
-          style={{ margin: '10px', cursor: 'pointer', color: 'black' }}
-          onClick={handleSpeak}
-        />
-      </div>
-      <div>
-        <button onClick={handleSummarize} disabled={loading}>
-          Summarize
-        </button>
-        <button onClick={handleTranslate} disabled={loading}>
-          Translate
-        </button>
-      </div>
-      <div>
-        <label htmlFor="languageSelect">Select Language:</label>
-        <select id="languageSelect" value={selectedLanguage} onChange={handleLanguageChange}>
-          <option value="telugu">Telugu</option>
-          <option value="kannada">Kannada</option>
-          <option value="tamil">Tamil</option>
-          <option value="malayalam">Malayalam</option>
-          <option value="hindi">Hindi</option>
-        </select>
-      </div>
-      {summary && <p>Summary: {summary}</p>}
-      {translatedText && <p>Translated Text: {translatedText}</p>}
-    </div>
+    <Container ref={containerRef}>
+      <Heading>Doctor Details</Heading>
+      <ContentContainer>
+        <TabContainer activeDoctor={activeDoctor}>
+          {doctors.map(doctor => (
+            <Tab
+              key={doctor.id}
+              onClick={() => setActiveDoctor(doctor)}
+              active={activeDoctor?.id === doctor.id}
+            >
+              <Name>{doctor.name}</Name>
+              <Specialization>{doctor.department}</Specialization>
+            </Tab>
+          ))}
+        </TabContainer>
+        {activeDoctor && (
+          <DetailsContainer>
+            <DoctorHeader>
+              <Name>{activeDoctor.name}</Name>
+              <Specialization>Specialization: {activeDoctor.department}</Specialization>
+            </DoctorHeader>
+            <VisitsList>
+              {visits.length > 0 ? (
+                visits.map((visit, index) => (
+                  <React.Fragment key={index}>
+                    <VisitItem>
+                      <VisitContent>
+                        <strong>Date:</strong> {visit.VisitDate}<br />
+                        <strong>Reason:</strong> {visit.DoctorRecommendation}
+                      </VisitContent>
+                      <ExpandButton onClick={() => toggleExpand(visit.id)}>
+                        {expandedVisits[visit.id] ? 'Collapse' : 'Expand'}
+                      </ExpandButton>
+                    </VisitItem>
+                    {expandedVisits[visit.id] && (
+                      <ExpandedDetails>
+                        <DetailItem>
+                          <strong>Patient Condition:</strong> {visit.PatientCondition}
+                        </DetailItem>
+                        <DetailItem>
+                          <strong>Doctor Recommendation:</strong> {visit.DoctorRecommendation}
+                        </DetailItem>
+                        <DetailItem>
+                          <strong>Medication Prescription:</strong> {visit.MedicationPrescription}
+                        </DetailItem>
+                      </ExpandedDetails>
+                    )}
+                  </React.Fragment>
+                ))
+              ) : (
+                <p>No previous visits</p>
+              )}
+            </VisitsList>
+          </DetailsContainer>
+        )}
+      </ContentContainer>
+    </Container>
   );
-}
+};
 
-export default Doctor;
+// Styled Components
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+`;
 
+const Heading = styled.h1`
+  text-align: center;
+  margin-bottom: 20px;
+  color: #3a4d99;
+`;
 
+const ContentContainer = styled.div`
+  display: flex;
+  flex: 1;
+  justify-content: center;
+`;
+
+const TabContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  background: #f7f9ff;
+  padding: 10px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  max-height: 600px; /* Set a maximum height for scrolling */
+  width: ${({ activeDoctor }) => (activeDoctor ? '40%' : '60%')};
+  margin-right: ${({ activeDoctor }) => (activeDoctor ? '20px' : '0')};
+  transition: width 0.3s ease, margin-right 0.3s ease;
+`;
+
+const Tab = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 15px;
+  cursor: pointer;
+  background: ${({ active }) => (active ? '#e0e7ff' : 'transparent')};
+  color: ${({ active }) => (active ? '#5a6ea1' : '#7f91f7')};
+  border-radius: 5px;
+  margin-bottom: 10px;
+  box-shadow: ${({ active }) =>
+    active ? '0px 4px 8px rgba(0, 0, 0, 0.2)' : '0px 2px 4px rgba(0, 0, 0, 0.1)'};
+  transition: box-shadow 0.3s ease, background 0.3s ease;
+
+  &:hover {
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+const Name = styled.div`
+  flex: 1;
+  font-weight: bold;
+  text-align: left;
+`;
+
+const Specialization = styled.div`
+  flex: 1;
+  text-align: right;
+`;
+
+const DetailsContainer = styled.div`
+  width: 50%;
+  padding: 20px;
+  background: #ffe6f2; /* Light shade of pink */
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  max-height: 60%; /* Set a maximum height for scrolling */
+  overflow-y: auto;
+  color: #5a6ea1; /* Purple text */
+`;
+
+const DoctorHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+`;
+
+const VisitsList = styled.div`
+  margin-top: 20px;
+`;
+
+const VisitItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f7f9ff;
+  border-radius: 5px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const VisitContent = styled.div`
+  flex: 1;
+`;
+
+const ExpandButton = styled.button`
+  padding: 5px 10px;
+  width: 20%;
+  background: #7f91f7;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+
+  &:hover {
+    background: #5a6ea1;
+  }
+`;
+
+const ExpandedDetails = styled.div`
+  margin-top: 10px;
+  padding: 10px;
+  background: #e0e7ff;
+  border-radius: 5px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const DetailItem = styled.div`
+  margin-bottom: 10px;
+`;
+
+export default DoctorDetails;

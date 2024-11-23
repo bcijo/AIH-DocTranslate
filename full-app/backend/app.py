@@ -1,14 +1,18 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import whisper
 import os
 import google.generativeai as genai
 import textwrap
 from googletrans import Translator
 from flask_cors import CORS
+from gtts import gTTS
+import pygame
+import uuid
+import threading
+import time
 
 app = Flask(__name__)
-CORS(app)
-
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 whisper_model = whisper.load_model("base")
 
 translator = Translator()
@@ -16,11 +20,45 @@ translator = Translator()
 GOOGLE_API_KEY = "AIzaSyAv97r8UIiqrNZjPVUUpMN7kDxqC1nEx7A"
 genai.configure(api_key=GOOGLE_API_KEY)
 
+# Initialize pygame mixer for controlling audio playback globally
+pygame.mixer.init()
+
 # Summarization function using Gemini
 def summarize_text(input_text):
     model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content(f"Summarize the following text: {input_text}")
+    response = model.generate_content(f"Summarize the following text into 3 bullet points: {input_text}")
     return response.text
+
+# Function to speak text using gTTS and save as MP3
+def speak_with_gtts(text, lang='en'):
+    try:
+        # Create a unique filename for each audio file to avoid overwriting
+        audio_filename = f"output_{uuid.uuid4().hex}.mp3"
+
+        # Convert the text to speech and save it as an MP3 file
+        tts = gTTS(text=text, lang=lang)
+        tts.save(audio_filename)
+
+        return audio_filename
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return None
+
+# Function to play audio in a thread
+def play_audio(filename):
+    try:
+        pygame.mixer.music.load(filename)
+        pygame.mixer.music.play()
+        
+        # Wait while music is playing
+        while pygame.mixer.music.get_busy():
+            time.sleep(0.1)
+        
+        # Clean up the file after playing
+        os.remove(filename)
+    except Exception as e:
+        print(f"Audio playback error: {str(e)}")
 
 @app.route('/')
 def home():
@@ -88,7 +126,6 @@ def translate_text():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/summarize', methods=['POST'])
 def summarize():
     """
@@ -106,6 +143,45 @@ def summarize():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/speak', methods=['POST'])
+def speak():
+    """
+    Endpoint to convert translated text to speech using gTTS and return as an MP3 file.
+    """
+    if not request.json or 'text' not in request.json or 'lang' not in request.json:
+        return jsonify({'error': 'No text or language provided for speech'}), 400
+
+    text = request.json['text']
+    lang = request.json['lang']  # Language code from the frontend
+    
+    try:
+        # Use gTTS to convert text to speech and save it
+        audio_filename = speak_with_gtts(text, lang)
+
+        if audio_filename:
+            # Start audio playback in a separate thread
+            threading.Thread(target=play_audio, args=(audio_filename,), daemon=True).start()
+            return jsonify({'message': 'Audio started playing'})
+
+        return jsonify({'error': 'Failed to generate speech'}), 500
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stop-speech', methods=['POST'])
+def stop_speech():
+    """
+    Endpoint to stop the speech if it is currently playing.
+    """
+    try:
+        # Stop the speech playback if it is playing
+        pygame.mixer.music.stop()
+        return jsonify({'message': 'Speech stopped successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Run the Flask app
     app.run(debug=True, port=5000)
+
+
