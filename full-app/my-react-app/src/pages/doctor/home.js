@@ -29,7 +29,10 @@ const DoctorHomePage = () => {
       <GlobalStyle />
       <Container>
         <Navbar>
-          <Logo>DocTranslate</Logo>
+          <Logo>
+            <LogoImage src="/title_image.png" alt="DocTranslate Logo" />
+            <LogoText>DocTranslate</LogoText>
+          </Logo>
           <NavLinks>
             <StyledNavLink to="home">Home</StyledNavLink>
             <StyledNavLink to="sessions">Session</StyledNavLink>
@@ -53,7 +56,6 @@ const DoctorHomePage = () => {
     </>
   );
 };
-
 
 // Keyframes for animation
 const fadeIn = keyframes`
@@ -99,7 +101,6 @@ const Container = styled.div`
   bottom: 0;
 `;
 
-
 const Navbar = styled.nav`
   display: flex;
   justify-content: space-between;
@@ -111,7 +112,10 @@ const Navbar = styled.nav`
   flex: 0.1; /* Allocate space for navbar */
 `;
 
-const Logo = styled.h1`
+const Logo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 2rem;
   color: #7f91f7;
   font-weight: bold;
@@ -122,6 +126,21 @@ const Logo = styled.h1`
   border-radius: 10px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   animation: ${fadeIn} 1s ease-in-out;
+`;
+
+const LogoImage = styled.img`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+`;
+
+const LogoText = styled.span`
+  font-size: 2rem;
+  color: #7f91f7;
+  font-weight: bold;
+  background: linear-gradient(90deg, #5a6ea1, #7f91f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 `;
 
 const NavLinks = styled.div`
