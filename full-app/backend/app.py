@@ -10,6 +10,8 @@ import pygame
 import uuid
 import threading
 import time
+from twilio.rest import Client
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -19,6 +21,12 @@ translator = Translator()
 # Configure Google API for summarization (ensure you've set your API key)
 GOOGLE_API_KEY = "AIzaSyAv97r8UIiqrNZjPVUUpMN7kDxqC1nEx7A"
 genai.configure(api_key=GOOGLE_API_KEY)
+
+# Your Twilio credentials
+account_sid = 'ACef1c7208b55590f1527cf91a6c3e100a'  # Replace with your Twilio account SID
+auth_token = '63ce01b5a6dfe228101f1a12d2a3ee09'    # Replace with your Twilio auth token
+client = Client(account_sid, auth_token)
+
 
 # Initialize pygame mixer for controlling audio playback globally
 pygame.mixer.init()
@@ -179,6 +187,22 @@ def stop_speech():
         return jsonify({'message': 'Speech stopped successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/make-call', methods=['POST'])
+def make_call():
+    phone = '+919148369005'  # Predefined set number to call
+    print("entered")
+    try:
+        call = client.calls.create(
+            url='http://demo.twilio.com/docs/voice.xml',
+            to=phone,
+            from_='+13854744792'  # Your Twilio number
+        )
+        return jsonify({'message': 'Call initiated', 'callSid': call.sid})
+    except Exception as e:
+        print(f'Error making call: {e}')
+        return jsonify({'error': 'Failed to make call'}), 500
+
 
 if __name__ == '__main__':
     # Run the Flask app

@@ -93,7 +93,7 @@ function Availability() {
 
   const handleCallNow = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/make-call');
+      const response = await axios.post('http://127.0.0.1:5000/make-call');
       alert(response.data.message); // Show the alert when the call is successfully initiated
     } catch (error) {
       console.error('Error initiating call:', error);
