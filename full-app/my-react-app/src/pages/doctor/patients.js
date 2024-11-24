@@ -7,22 +7,50 @@ import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { useAuth } from '../../hooks/AuthProvider';
 
 function Patient() {
-  const [inputText, setInputText] = useState('');
-  const [translatedText, setTranslatedText] = useState('');
+  const [patientProblem, setPatientProblem] = useState('');
+  const [doctorFeedback, setDoctorFeedback] = useState('');
+  const [medicationPrescription, setMedicationPrescription] = useState('');
+  const [translatedPatientProblem, setTranslatedPatientProblem] = useState('');
+  const [translatedDoctorFeedback, setTranslatedDoctorFeedback] = useState('');
+  const [translatedMedicationPrescription, setTranslatedMedicationPrescription] = useState('');
+  const [medicationSummary, setMedicationSummary] = useState('');
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [recognitionActive, setRecognitionActive] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('english');
+  const [patientLanguage, setPatientLanguage] = useState('tamil');
+  const [doctorLanguage, setDoctorLanguage] = useState('english');
   const [synth, setSynth] = useState(window.speechSynthesis);
   const [utterance, setUtterance] = useState(null);
   const [patients, setPatients] = useState([]);
   const [activePatient, setActivePatient] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [doctorSummary, setDoctorSummary] = useState('');
-  const [medicationPrescription, setMedicationPrescription] = useState('');
   const [step, setStep] = useState(1); // 1: Patient summary, 2: Doctor summary, 3: Medication prescription
   const [successMessage, setSuccessMessage] = useState('');
   const [recognition, setRecognition] = useState(null);
+  const [finalSummary, setFinalSummary] = useState({
+    patientSummary: '',
+    doctorSummary: '',
+    medicationSummary: ''
+  });
+
+  const languageMap = {
+    telugu: 'te-IN',
+    hindi: 'hi-IN',
+    tamil: 'ta-IN',
+    malayalam: 'ml-IN',
+    kannada: 'kn-IN',
+    english: 'en-US'
+  };
+
+  const gttsLanguageMap = {
+    telugu: 'te',
+    hindi: 'hi',
+    tamil: 'ta',
+    malayalam: 'ml',
+    kannada: 'kn',
+    english: 'en'
+  };
 
   const { user } = useAuth(); // Get the authenticated user
 
@@ -49,7 +77,21 @@ function Patient() {
 
   // Function to handle language selection
   const handleLanguageChange = (e) => {
-    setSelectedLanguage(e.target.value);
+    setPatientLanguage(e.target.value);
+  };
+
+  // Function to translate text using a translation API
+  const translateText = async (text, targetLanguage) => {
+    try {
+      const response = await axios.post('http://localhost:5000/api/translate', {
+        text: text,
+        target_lang: targetLanguage,
+      });
+      return response.data.translated_text;
+    } catch (error) {
+      console.error('Translation Error:', error);
+      return '';
+    }
   };
 
   // Function to summarize text using the Flask backend
@@ -59,15 +101,10 @@ function Patient() {
       const response = await axios.post('http://localhost:5000/api/summarize', {
         text: text,
       });
-      if (step === 1) {
-        setSummary(response.data.summary);
-      } else if (step === 2) {
-        setDoctorSummary(response.data.summary);
-      } else if (step === 3) {
-        setMedicationPrescription(response.data.summary);
-      }
+      return response.data.summary;
     } catch (error) {
       console.error('Summarization Error:', error);
+      return '';
     } finally {
       setLoading(false);
     }
@@ -80,7 +117,7 @@ function Patient() {
       return;
     }
     const recognitionInstance = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognitionInstance.lang = 'en-US';
+    recognitionInstance.lang = step === 1 ? languageMap[patientLanguage] : 'en-US';
     recognitionInstance.continuous = true; // Allow continuous recognition
     recognitionInstance.interimResults = true; // Allow interim results
 
@@ -93,7 +130,13 @@ function Patient() {
       let interimTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          setInputText(event.results[i][0].transcript);
+          if (step === 1) {
+            setPatientProblem(event.results[i][0].transcript);
+          } else if (step === 2) {
+            setDoctorFeedback(event.results[i][0].transcript);
+          } else if (step === 3) {
+            setMedicationPrescription(event.results[i][0].transcript);
+          }
         } else {
           interimTranscript += event.results[i][0].transcript;
         }
@@ -117,21 +160,66 @@ function Patient() {
       recognition.stop();
       setRecognitionActive(false);
       console.log('Speech recognition manually stopped.');
-      handleSummarize(inputText);
-      setInputText(''); // Clear input text after summarization
-      setStep(step + 1); // Move to the next step
     }
   };
 
-  // Speak translated text
-  const handleSpeak = () => {
-    if (!translatedText) return;
+  // Handle translate button click
+  const handleTranslate = async () => {
+    let textToTranslate = '';
+    let target = '';
+    if (step === 1) {
+      textToTranslate = patientProblem;
+      target = doctorLanguage;
+      const translated = await translateText(textToTranslate, target);
+      setTranslatedPatientProblem(translated);
+    } else if (step === 2) { 
+      const summarizedText = await handleSummarize(doctorFeedback);
+      setDoctorSummary(summarizedText);
+      textToTranslate = summarizedText;
+      target = patientLanguage;
+      const translated = await translateText(textToTranslate, target);
+      setTranslatedDoctorFeedback(translated);
+      await handleSpeak(translated);
+    } else if (step === 3) {
+      const summarizedText = await handleSummarize(medicationPrescription);
+      setMedicationSummary(summarizedText);
+      textToTranslate = summarizedText;
+      target = patientLanguage;
+      const translated = await translateText(textToTranslate, target);
+      setTranslatedMedicationPrescription(translated);
+      await handleSpeak(translated);
+    }
+  };
 
-    const newUtterance = new SpeechSynthesisUtterance(translatedText);
-    newUtterance.lang = getLanguageCode(selectedLanguage);
-    synth.cancel(); // Stop any ongoing speech
-    synth.speak(newUtterance);
-    setUtterance(newUtterance);
+  // Handle summarize button click
+  const handleSummarizeClick = async () => {
+    let textToSummarize = '';
+    if (step === 2) {
+      textToSummarize = doctorFeedback;
+      const summarizedText = await handleSummarize(textToSummarize);
+      setDoctorSummary(summarizedText);
+    } else if (step === 3) {
+      textToSummarize = medicationPrescription;
+      const summarizedText = await handleSummarize(textToSummarize);
+      setMedicationSummary(summarizedText);
+    }
+    setStep(step + 1); // Move to the next step
+  };
+
+  // Speak out translated text
+  const handleSpeak = async (text) => {
+    if (!text) return;
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/speak', {
+        text: text,
+        lang: getLanguageCode(step),
+      });
+
+      console.log(response.data.message);
+    } catch (error) {
+      console.error('Speech Error:', error);
+    }
   };
 
   // Stop speaking
@@ -141,15 +229,13 @@ function Patient() {
   };
 
   // Language code mapper
-  const getLanguageCode = (language) => {
+  const getLanguageCode = (step) => {
     const languageMap = {
-      telugu: 'te-IN',
-      kannada: 'kn-IN',
-      tamil: 'ta-IN',
-      malayalam: 'ml-IN',
-      hindi: 'hi-IN',
+      1: 'en', // English for step 1
+      2: gttsLanguageMap[patientLanguage], // Patient's preferred language for step 2
+      3: gttsLanguageMap[patientLanguage], // Patient's preferred language for step 3
     };
-    return languageMap[language] || 'en-US';
+    return languageMap[step] || 'en-US';
   };
 
   // Function to save visit details to Firestore
@@ -160,8 +246,8 @@ function Patient() {
         DoctorID: user.uid,
         PatientID: activePatient.id,
         PatientName: activePatient.name,
-        PatientCondition: summary,
-        DoctorRecommendation: doctorSummary,
+        PatientCondition: translatedPatientProblem,
+        DoctorRecommendation: doctorFeedback,
         MedicationPrescription: medicationPrescription,
         VisitDate: new Date().toISOString(),
         VisitType: 'in-person',
@@ -175,14 +261,23 @@ function Patient() {
 
   // Function to reset the form
   const resetForm = () => {
-    setInputText('');
-    setTranslatedText('');
+    setPatientProblem('');
+    setDoctorFeedback('');
+    setMedicationPrescription('');
+    setMedicationSummary('');
+    setTranslatedPatientProblem('');
+    setTranslatedDoctorFeedback('');
+    setTranslatedMedicationPrescription('');
     setSummary('');
     setDoctorSummary('');
-    setMedicationPrescription('');
     setStep(1);
     setActivePatient(null);
     setSearchQuery('');
+  };
+
+  // Handle step transition
+  const handleNextStep = () => {
+    setStep(step + 1);
   };
 
   return (
@@ -196,21 +291,62 @@ function Patient() {
               <IconCircle onClick={recognitionActive ? stopVoiceInput : startVoiceInput}>
                 <StyledIcon as={FaMicrophone} size={30} active={recognitionActive} />
               </IconCircle>
-              <IconCircle onClick={stopSpeaking}>
-                <StyledIcon as={FaStop} size={30} />
-              </IconCircle>
-              <IconCircle onClick={handleSpeak}>
+              <IconCircle onClick={() => handleSpeak(translatedPatientProblem)}>
                 <StyledIcon as={FaVolumeUp} size={30} />
               </IconCircle>
             </IconContainer>
+            <LanguageDropdown value={patientLanguage} onChange={handleLanguageChange}>
+              <option value="telugu">Telugu</option>
+              <option value="hindi">Hindi</option>
+              <option value="tamil">Tamil</option>
+              <option value="malayalam">Malayalam</option>
+              <option value="kannada">Kannada</option>
+              <option value="english">English</option>
+            </LanguageDropdown>
+            <Textbox
+              value={step === 1 ? patientProblem : step === 2 ? doctorFeedback : medicationPrescription}
+              onChange={(e) => {
+                if (step === 1) {
+                  setPatientProblem(e.target.value);
+                } else if (step === 2) {
+                  setDoctorFeedback(e.target.value);
+                } else if (step === 3) {
+                  setMedicationPrescription(e.target.value);
+                }
+              }}
+              placeholder="Transcribed text will appear here..."
+            />
+            <ButtonContainer>
+              {step === 1 && (
+                <Button onClick={handleTranslate} disabled={loading}>
+                  Translate
+                </Button>
+              )}
+              {(step === 2 || step === 3) && (
+                <>
+                 
+                  <Button onClick={handleTranslate} disabled={loading}>
+                    Summarise & Translate
+                  </Button>
+                </>
+              )}
+              <Button onClick={handleNextStep} disabled={loading || step >= 4}>
+                Next Step
+              </Button>
+            </ButtonContainer>
             {step === 1 && <ResultText>Record Patient Problem</ResultText>}
             {step === 2 && <ResultText>Record Doctor Feedback</ResultText>}
-            {step === 3 && <ResultText>Record Medication Prescribed</ResultText>}
-            {summary && <ResultText>Patient Summary: {summary}</ResultText>}
+            {step === 3 && <ResultText>Record Medication Prescription</ResultText>}
             {doctorSummary && <ResultText>Doctor Summary: {doctorSummary}</ResultText>}
-            {medicationPrescription && <ResultText>Medication Prescription: {medicationPrescription}</ResultText>}
-            {translatedText && <ResultText>Translated Text: {translatedText}</ResultText>}
+            {medicationSummary && <ResultText>Medication Prescription Summary: {medicationSummary}</ResultText>}
             {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
+            {step === 4 && (
+              <>
+                <ResultText>Patient Problem: {translatedPatientProblem}</ResultText>
+                <ResultText>Doctor Feedback: {translatedDoctorFeedback}</ResultText>
+                <ResultText>Medication Prescription: {translatedMedicationPrescription}</ResultText>
+              </>
+            )}
             <ButtonContainer>
               <Button onClick={saveVisitDetails} disabled={loading || step < 4}>
                 Save Visit Details
@@ -324,6 +460,24 @@ const StyledIcon = styled.div`
   color: ${props => props.active ? 'red' : '#5569af'};
 `;
 
+const LanguageDropdown = styled.select`
+  margin: 15px 0;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+`;
+
+const Textbox = styled.textarea`
+  width: 90%;
+  height: 100px;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+`;
+
 const ButtonContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -431,3 +585,4 @@ const SelectPatientText = styled.div`
 `;
 
 export default Patient;
+
