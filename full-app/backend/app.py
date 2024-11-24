@@ -50,11 +50,11 @@ def play_audio(filename):
     try:
         pygame.mixer.music.load(filename)
         pygame.mixer.music.play()
-        
+
         # Wait while music is playing
         while pygame.mixer.music.get_busy():
             time.sleep(0.1)
-        
+
         # Clean up the file after playing
         os.remove(filename)
     except Exception as e:
@@ -74,7 +74,7 @@ def detect_language():
     """
     if 'audio' not in request.files:
         return jsonify({'error': 'No audio file provided'}), 400
-    
+
     file = request.files['audio']
     if file.filename == '':
         return jsonify({'error': 'No audio file selected'}), 400
@@ -82,7 +82,7 @@ def detect_language():
     temp_dir = 'temp'
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
-    
+
     temp_file_path = os.path.join(temp_dir, file.filename)
     file.save(temp_file_path)
 
@@ -133,9 +133,9 @@ def summarize():
     """
     if not request.json or 'text' not in request.json:
         return jsonify({'error': 'No text provided for summarization'}), 400
-    
+
     input_text = request.json['text']
-    
+
     try:
         summary = summarize_text(input_text)
         return jsonify({'summary': summary})
@@ -153,7 +153,7 @@ def speak():
 
     text = request.json['text']
     lang = request.json['lang']  # Language code from the frontend
-    
+
     try:
         # Use gTTS to convert text to speech and save it
         audio_filename = speak_with_gtts(text, lang)
@@ -180,8 +180,11 @@ def stop_speech():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+
 if __name__ == '__main__':
     # Run the Flask app
     app.run(debug=True, port=5000)
+
 
 
