@@ -188,15 +188,32 @@ def stop_speech():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# @app.route('/make-call', methods=['POST'])
+# def make_call():
+#     phone = '+919148369005'  # Predefined set number to call
+#     print("entered")
+#     try:
+#         call = client.calls.create(
+#             url='http://demo.twilio.com/docs/voice.xml',
+#             to=phone,
+#             from_='+13854744792'  # Your Twilio number
+#         )
+#         return jsonify({'message': 'Call initiated', 'callSid': call.sid})
+#     except Exception as e:
+#         print(f'Error making call: {e}')
+#         return jsonify({'error': 'Failed to make call'}), 500
+
 @app.route('/make-call', methods=['POST'])
 def make_call():
-    phone = '+919148369005'  # Predefined set number to call
-    print("entered")
+    data = request.json
+    phone = data.get('phoneNumber')
+    if not phone:
+        return jsonify({'error': 'No phone number provided'}), 400
     try:
         call = client.calls.create(
             url='http://demo.twilio.com/docs/voice.xml',
             to=phone,
-            from_='+13854744792'  # Your Twilio number
+            from_='+13854744792'
         )
         return jsonify({'message': 'Call initiated', 'callSid': call.sid})
     except Exception as e:
