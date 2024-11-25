@@ -149,16 +149,19 @@ const Appointments = () => {
         return <p>No doctor information found.</p>;
     }
 
-    const formattedSessions = doctorInfo.sessions?.map((session) => {
-        const date = new Date(session.seconds * 1000);
-        return date.toLocaleString();
-    });
+    const formatSessionTime = (startTime, endTime) => {
+        const start = new Date(startTime.seconds * 1000);
+        const end = new Date(endTime.seconds * 1000);
+        const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+        const dateOptions = { day: 'numeric', month: 'short' };
+        return `${start.toLocaleDateString([], dateOptions)}: ${start.toLocaleTimeString([], options)} - ${end.toLocaleDateString([], dateOptions)}: ${end.toLocaleTimeString([], options)}`;
+    };
 
     const sessionPairs = [];
-    for (let i = 0; i < formattedSessions.length; i += 2) {
+    for (let i = 0; i < doctorInfo.sessions.length; i += 2) {
         sessionPairs.push({
-            startTime: formattedSessions[i],
-            endTime: formattedSessions[i + 1] || 'N/A',
+            startTime: doctorInfo.sessions[i],
+            endTime: doctorInfo.sessions[i + 1] || null,
         });
     }
 
@@ -171,16 +174,14 @@ const Appointments = () => {
                     <table>
                         <thead>
                             <tr>
-                                <th>Start Time</th>
-                                <th>End Time</th>
+                                <th>Session</th>
                                 <th>Select session to remove</th>
                             </tr>
                         </thead>
                         <tbody>
                             {sessionPairs.map((session, index) => (
                                 <tr key={index}>
-                                    <td>{session.startTime}</td>
-                                    <td>{session.endTime}</td>
+                                    <td>{formatSessionTime(session.startTime, session.endTime)}</td>
                                     <td style={{ textAlign: 'center' }}>
                                         <input
                                             type="checkbox"

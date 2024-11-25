@@ -28,16 +28,6 @@ function Availability() {
     fetchDoctors();
   }, [user]);
 
-  // const handleCallNow = async () => {
-  //   try {
-  //     const response = await axios.post('http://127.0.0.1:5000/make-call');
-  //     alert(response.data.message); // Show the alert when the call is successfully initiated
-  //   } catch (error) {
-  //     console.error('Error initiating call:', error);
-  //     alert('Failed to initiate call');
-  //   }
-  // };
-
   const handleDoctorChange = (event) => {
     setSelectedDoctor(event.target.value);
   };
@@ -57,8 +47,7 @@ function Availability() {
       alert('Doctor phone number not available');
     }
   };
-  
-  
+
   // Helper function to format Firestore timestamps
   const formatTimestamp = (timestamp) => {
     if (timestamp && timestamp.seconds) {
@@ -68,12 +57,22 @@ function Availability() {
     return 'Invalid timestamp';
   };
 
+  // Helper function to format session times in a human-friendly way
+  const formatSessionTime = (startTime, endTime) => {
+    const start = new Date(startTime.seconds * 1000);
+    const end = new Date(endTime.seconds * 1000);
+    const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+    const dateOptions = { day: 'numeric', month: 'short' };
+    return `${start.toLocaleDateString([], dateOptions)}: ${start.toLocaleTimeString([], options)} - ${end.toLocaleDateString([], dateOptions)}: ${end.toLocaleTimeString([], options)}`;
+  };
+
   return (
     <>
       <GlobalStyle />
       <Container>
         <Title>Doctor Availability</Title>
 
+        <Label>Choose Doctor</Label>
         <Select onChange={handleDoctorChange} value={selectedDoctor}>
           <option value="">Select a Doctor</option>
           {doctors.map((doctor, index) => (
@@ -83,68 +82,63 @@ function Availability() {
           ))}
         </Select>
 
-
         {selectedDoctor && (
-  <DoctorInfo>
-    <h2>{selectedDoctor}</h2>
-    <h3>Sessions:</h3>
-    <SessionTable>
-      <thead>
-        <tr>
-          <th>Start Time</th>
-          <th>End Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        {doctors
-          .find(doc => doc.name === selectedDoctor)
-          ?.sessions.reduce((rows, session, index, array) => {
-            if (index % 2 === 0 && index + 1 < array.length) {
-              rows.push({
-                startTime: formatTimestamp(array[index]),
-                endTime: formatTimestamp(array[index + 1]),
-              });
-            }
-            return rows;
-          }, [])
-          .map((row, index) => (
-            <tr key={index}>
-              <td>{row.startTime}</td>
-              <td>{row.endTime}</td>
-            </tr>
-          ))}
-      </tbody>
-    </SessionTable>
+          <DoctorInfo>
+            <h3>Doctor {selectedDoctor}'s Sessions:</h3>
+            <SessionTable>
+              <thead>
+                <tr>
+                  <th>Session</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doctors
+                  .find(doc => doc.name === selectedDoctor)
+                  ?.sessions.reduce((rows, session, index, array) => {
+                    if (index % 2 === 0 && index + 1 < array.length) {
+                      rows.push({
+                        startTime: array[index],
+                        endTime: array[index + 1],
+                      });
+                    }
+                    return rows;
+                  }, [])
+                  .map((row, index) => (
+                    <tr key={index}>
+                      <td>{formatSessionTime(row.startTime, row.endTime)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </SessionTable>
 
-    {(() => {
-      const currentTime = new Date(); // Current time
-      const isAvailable = doctors
-        .find(doc => doc.name === selectedDoctor)
-        ?.sessions.reduce((availability, session, index, array) => {
-          if (index % 2 === 0 && index + 1 < array.length) {
-            const startTime = new Date(array[index].seconds * 1000); // Convert Firestore timestamp to Date
-            const endTime = new Date(array[index + 1].seconds * 1000); // Convert Firestore timestamp to Date
-            if (currentTime >= startTime && currentTime <= endTime) {
-              availability = true;
-            }
-          }
-          return availability;
-        }, false);
+            {(() => {
+              const currentTime = new Date(); // Current time
+              const isAvailable = doctors
+                .find(doc => doc.name === selectedDoctor)
+                ?.sessions.reduce((availability, session, index, array) => {
+                  if (index % 2 === 0 && index + 1 < array.length) {
+                    const startTime = new Date(array[index].seconds * 1000); // Convert Firestore timestamp to Date
+                    const endTime = new Date(array[index + 1].seconds * 1000); // Convert Firestore timestamp to Date
+                    if (currentTime >= startTime && currentTime <= endTime) {
+                      availability = true;
+                    }
+                  }
+                  return availability;
+                }, false);
 
-      if (isAvailable) {
-        return (
-          <>
-            <AvailabilityText isAvailable={true}>Doctor is available</AvailabilityText>
-            <CallButton onClick={handleCallNow}>Call Now</CallButton>
-          </>
-        );
-      } else {
-        return <AvailabilityText isAvailable={false}>Doctor is not available</AvailabilityText>;
-      }
-    })()}
-  </DoctorInfo>
-)}
-
+              if (isAvailable) {
+                return (
+                  <>
+                    <AvailabilityText isAvailable={true}>Doctor is available</AvailabilityText>
+                    <CallButton onClick={handleCallNow}>Call Now</CallButton>
+                  </>
+                );
+              } else {
+                return <AvailabilityText isAvailable={false}>Doctor is not available</AvailabilityText>;
+              }
+            })()}
+          </DoctorInfo>
+        )}
 
       </Container>
     </>
@@ -174,6 +168,12 @@ const Container = styled.div`
 
 const Title = styled.h1`
   margin-bottom: 20px;
+  color: #3a4d99;
+`;
+
+const Label = styled.label`
+  margin-bottom: 10px;
+  font-size: 1.2rem;
   color: #3a4d99;
 `;
 
