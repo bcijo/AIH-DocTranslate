@@ -17,7 +17,7 @@ whisper_model = whisper.load_model("base")
 
 translator = Translator()
 # Configure Google API for summarization (ensure you've set your API key)
-GOOGLE_API_KEY = "AIzaSyAv97r8UIiqrNZjPVUUpMN7kDxqC1nEx7A"
+GOOGLE_API_KEY = "AIzaSyCka7puA6XVfzxz-mXzCRhoNHY0z3K2Iks"
 genai.configure(api_key=GOOGLE_API_KEY)
 
 # Initialize pygame mixer for controlling audio playback globally
