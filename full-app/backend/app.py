@@ -189,7 +189,6 @@ def stop_speech():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-<<<<<<< HEAD
 # @app.route('/make-call', methods=['POST'])
 # def make_call():
 #     phone = '+919148369005'  # Predefined set number to call
@@ -221,8 +220,6 @@ def make_call():
     except Exception as e:
         print(f'Error making call: {e}')
         return jsonify({'error': 'Failed to make call'}), 500
-=======
->>>>>>> bcc4efe3342d281b2538391cbd4bdb12d8b8d7b0
 
 
 if __name__ == '__main__':
