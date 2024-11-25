@@ -11,6 +11,7 @@ import uuid
 import threading
 import time
 from twilio.rest import Client
+from dotenv import load_dotenv
 
 
 app = Flask(__name__)
@@ -23,8 +24,8 @@ GOOGLE_API_KEY = "AIzaSyAv97r8UIiqrNZjPVUUpMN7kDxqC1nEx7A"
 genai.configure(api_key=GOOGLE_API_KEY)
 
 # Your Twilio credentials
-account_sid = 'ACef1c7208b55590f1527cf91a6c3e100a'  # Replace with your Twilio account SID
-auth_token = '63ce01b5a6dfe228101f1a12d2a3ee09'    # Replace with your Twilio auth token
+account_sid = os.getenv('TWILIO_ACCOUNT_SID')  # Replace with your Twilio account SID
+auth_token =   os.getenv('TWILIO_AUTH_TOKEN')  # Replace with your Twilio auth token
 client = Client(account_sid, auth_token)
 
 
