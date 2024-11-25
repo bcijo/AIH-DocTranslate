@@ -105,7 +105,7 @@ const Appointments = () => {
         }
 
         const sessionsToRemove = selectedSessionIndices.flatMap(index =>
-            doctorInfo.sessions.slice(index * 2, index * 2 + 2)
+            doctorInfo.sessions.slice(index * 2 + 2, index * 2 + 4)
         );
 
         try {
@@ -117,14 +117,17 @@ const Appointments = () => {
             });
 
             // Update local state
-            setDoctorInfo((prev) => ({
-                ...prev,
-                sessions: prev.sessions.filter((_, index) =>
+            setDoctorInfo((prev) => {
+                const updatedSessions = prev.sessions.filter((_, index) =>
                     !selectedSessionIndices.some(selectedIndex =>
-                        index >= selectedIndex * 2 && index < selectedIndex * 2 + 2
+                        index >= selectedIndex * 2 + 2 && index < selectedIndex * 2 + 4
                     )
-                ),
-            }));
+                );
+                return {
+                    ...prev,
+                    sessions: updatedSessions,
+                };
+            });
 
             // Clear selected session indices
             setSelectedSessionIndices([]);
