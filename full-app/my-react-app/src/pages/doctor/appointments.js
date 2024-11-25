@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebaseConfig';
 import { useAuth } from '../../hooks/AuthProvider';
 import styled from 'styled-components';
@@ -9,6 +9,7 @@ const Appointments = () => {
     const [doctorInfo, setDoctorInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [sessions, setSessions] = useState([]);
+    const [selectedSessionIndices, setSelectedSessionIndices] = useState([]);
 
     useEffect(() => {
         const fetchDoctorInfo = async () => {
@@ -44,26 +45,100 @@ const Appointments = () => {
     };
 
     const handleSubmitSessions = async () => {
+        const currentTime = new Date();
+
+        // Validate each session's start and end times
+        for (const { startTime, endTime } of sessions) {
+            if (!startTime || !endTime) {
+                console.error('Both start time and end time must be filled.');
+                alert('Please fill out both start and end times for all sessions.');
+                return;
+            }
+
+            const start = new Date(startTime);
+            const end = new Date(endTime);
+
+            if (start < currentTime) {
+                console.error('Start time must be greater than the current time.');
+                alert('Start time must be greater than the current time.');
+                return;
+            }
+
+            if (start >= end) {
+                console.error('Start time must be earlier than end time.');
+                alert('Start time must be earlier than end time for all sessions.');
+                return;
+            }
+        }
+
         try {
             const docRef = doc(db, 'doctors', user.uid);
+
+            // Convert sessions to Firestore Timestamps
             const sessionTimestamps = sessions.flatMap(({ startTime, endTime }) => [
                 Timestamp.fromDate(new Date(startTime)),
                 Timestamp.fromDate(new Date(endTime)),
             ]);
 
+            // Update Firestore with new sessions
             await updateDoc(docRef, {
                 sessions: arrayUnion(...sessionTimestamps),
             });
 
+            // Update local state
             setDoctorInfo((prev) => ({
                 ...prev,
                 sessions: [...(prev?.sessions || []), ...sessionTimestamps],
             }));
 
+            // Clear session inputs
             setSessions([]);
         } catch (error) {
             console.error('Error submitting sessions:', error);
         }
+    };
+
+    const handleRemoveSession = async () => {
+        if (selectedSessionIndices.length === 0) {
+            alert('Please select at least one session to remove.');
+            return;
+        }
+
+        const sessionsToRemove = selectedSessionIndices.flatMap(index =>
+            doctorInfo.sessions.slice(index * 2, index * 2 + 2)
+        );
+
+        try {
+            const docRef = doc(db, 'doctors', user.uid);
+
+            // Remove the selected sessions from Firestore
+            await updateDoc(docRef, {
+                sessions: arrayRemove(...sessionsToRemove),
+            });
+
+            // Update local state
+            setDoctorInfo((prev) => ({
+                ...prev,
+                sessions: prev.sessions.filter((_, index) =>
+                    !selectedSessionIndices.some(selectedIndex =>
+                        index >= selectedIndex * 2 && index < selectedIndex * 2 + 2
+                    )
+                ),
+            }));
+
+            // Clear selected session indices
+            setSelectedSessionIndices([]);
+        } catch (error) {
+            console.error('Error removing sessions:', error);
+        }
+    };
+
+    const toggleSessionSelection = (index) => {
+        setSelectedSessionIndices((prevSelected) =>
+            prevSelected.includes(index)
+                ? prevSelected.filter((i) => i !== index)
+                : [...prevSelected, index]
+        );
     };
 
     if (loading) {
@@ -74,19 +149,27 @@ const Appointments = () => {
         return <p>No doctor information found.</p>;
     }
 
-    // Filter out the initial empty string and process the remaining sessions
-    const validSessions = doctorInfo.sessions?.filter(session => session !== "");
+    // Check if the first session is an empty string
+    const hasInitialEmptyString = doctorInfo.sessions && doctorInfo.sessions[0] === "";
 
-    const formattedSessions = validSessions?.map((session) => {
-        const date = new Date(session.seconds * 1000);
-        return date.toLocaleString();
-    });
+    // Filter out the initial empty string and process the remaining sessions
+    const validSessions = hasInitialEmptyString
+        ? doctorInfo.sessions.slice(1).filter(session => session !== "")
+        : doctorInfo.sessions.filter(session => session !== "");
+
+    const formatSessionTime = (startTime, endTime) => {
+        const start = new Date(startTime.seconds * 1000);
+        const end = new Date(endTime.seconds * 1000);
+        const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+        const dateOptions = { day: 'numeric', month: 'short' };
+        return `${start.toLocaleDateString([], dateOptions)}: ${start.toLocaleTimeString([], options)} - ${end.toLocaleDateString([], dateOptions)}: ${end.toLocaleTimeString([], options)}`;
+    };
 
     const sessionPairs = [];
-    for (let i = 0; i < formattedSessions.length; i += 2) {
+    for (let i = 0; i < validSessions.length; i += 2) {
         sessionPairs.push({
-            startTime: formattedSessions[i],
-            endTime: formattedSessions[i + 1] || 'N/A',
+            startTime: validSessions[i],
+            endTime: validSessions[i + 1] || null,
         });
     }
 
@@ -101,15 +184,21 @@ const Appointments = () => {
                     <table>
                         <thead>
                             <tr>
-                                <th>Start Time</th>
-                                <th>End Time</th>
+                                <th>Session</th>
+                                <th>Select session to remove</th>
                             </tr>
                         </thead>
                         <tbody>
                             {sessionPairs.map((session, index) => (
                                 <tr key={index}>
-                                    <td>{session.startTime}</td>
-                                    <td>{session.endTime}</td>
+                                    <td>{formatSessionTime(session.startTime, session.endTime)}</td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedSessionIndices.includes(index)}
+                                            onChange={() => toggleSessionSelection(index)}
+                                        />
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -145,8 +234,11 @@ const Appointments = () => {
             </SessionForm>
 
             <SubmitSection>
-                <Button onClick={handleSubmitSessions}>Submit Sessions</Button>
+                <Button onClick={handleSubmitSessions}>Submit New Sessions</Button>
             </SubmitSection>
+            <RemoveSection>
+                <Button onClick={handleRemoveSession}>Remove Chosen Session</Button>
+            </RemoveSection>
         </Container>
     );
 };
@@ -159,26 +251,32 @@ const Container = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+    color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const Title = styled.h1`
     color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const Description = styled.p`
     font-size: 1.2rem;
-    color: #333;
+    color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const DoctorInfo = styled.div`
     text-align: center;
-    color: #333;
+    color: #3a4d99;
     margin-bottom: 20px;
+    font-family: 'Arial', sans-serif;
 `;
 
 const SessionsTable = styled.div`
     margin-bottom: 20px;
-    text-align: center; /* Add this line to center the content */
+    text-align: center;
+    font-family: 'Arial', sans-serif;
 
     table {
         width: 100%;
@@ -192,11 +290,13 @@ const SessionsTable = styled.div`
     th, td {
         padding: 8px;
         border: 1px solid #ddd;
+        color: #3a4d99;
     }
 
     th {
         background-color: #f4f4f4;
-        color: #333;
+        color: #3a4d99;
+        text-align: center; /* Center the column heading text */
     }
 
     tr:nth-child(even) {
@@ -220,6 +320,7 @@ const SessionForm = styled.div`
     max-width: 600px;
     margin-top: 20px;
     text-align: center;
+    font-family: 'Arial', sans-serif;
 `;
 
 const SessionInput = styled.div`
@@ -228,6 +329,8 @@ const SessionInput = styled.div`
     label {
         display: block;
         margin-bottom: 5px;
+        color: #3a4d99;
+        font-family: 'Arial', sans-serif;
     }
 
     input {
@@ -237,6 +340,8 @@ const SessionInput = styled.div`
         font-size: 1rem;
         border: 1px solid #ddd;
         border-radius: 8px;
+        color: #3a4d99;
+        font-family: 'Arial', sans-serif;
     }
 `;
 
@@ -249,6 +354,7 @@ const Button = styled.button`
     font-size: 1.2rem;
     cursor: pointer;
     margin-top: 10px;
+    font-family: 'Arial', sans-serif;
 
     &:hover {
         background-color: #5569af;
@@ -256,6 +362,10 @@ const Button = styled.button`
 `;
 
 const SubmitSection = styled.div`
+    margin-top: 20px;
+`;
+
+const RemoveSection = styled.div`
     margin-top: 20px;
 `;
 

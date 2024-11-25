@@ -10,6 +10,9 @@ import pygame
 import uuid
 import threading
 import time
+from twilio.rest import Client
+from dotenv import load_dotenv
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -19,6 +22,12 @@ translator = Translator()
 # Configure Google API for summarization (ensure you've set your API key)
 GOOGLE_API_KEY = "AIzaSyAv97r8UIiqrNZjPVUUpMN7kDxqC1nEx7A"
 genai.configure(api_key=GOOGLE_API_KEY)
+
+# Your Twilio credentials
+account_sid = os.getenv('TWILIO_ACCOUNT_SID')  # Replace with your Twilio account SID
+auth_token =   os.getenv('TWILIO_AUTH_TOKEN')  # Replace with your Twilio auth token
+client = Client(account_sid, auth_token)
+
 
 # Initialize pygame mixer for controlling audio playback globally
 pygame.mixer.init()
@@ -180,6 +189,40 @@ def stop_speech():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+<<<<<<< HEAD
+# @app.route('/make-call', methods=['POST'])
+# def make_call():
+#     phone = '+919148369005'  # Predefined set number to call
+#     print("entered")
+#     try:
+#         call = client.calls.create(
+#             url='http://demo.twilio.com/docs/voice.xml',
+#             to=phone,
+#             from_='+13854744792'  # Your Twilio number
+#         )
+#         return jsonify({'message': 'Call initiated', 'callSid': call.sid})
+#     except Exception as e:
+#         print(f'Error making call: {e}')
+#         return jsonify({'error': 'Failed to make call'}), 500
+
+@app.route('/make-call', methods=['POST'])
+def make_call():
+    data = request.json
+    phone = data.get('phoneNumber')
+    if not phone:
+        return jsonify({'error': 'No phone number provided'}), 400
+    try:
+        call = client.calls.create(
+            url='http://demo.twilio.com/docs/voice.xml',
+            to=phone,
+            from_='+13854744792'
+        )
+        return jsonify({'message': 'Call initiated', 'callSid': call.sid})
+    except Exception as e:
+        print(f'Error making call: {e}')
+        return jsonify({'error': 'Failed to make call'}), 500
+=======
+>>>>>>> bcc4efe3342d281b2538391cbd4bdb12d8b8d7b0
 
 
 if __name__ == '__main__':
