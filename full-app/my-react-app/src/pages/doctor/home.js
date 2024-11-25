@@ -1,3 +1,4 @@
+// src/pages/doctor/home.js
 import React from 'react';
 import { createGlobalStyle } from 'styled-components';
 import { NavLink, Route, Routes } from 'react-router-dom';
@@ -5,7 +6,8 @@ import UserProfile from '../../components/UserProfile';
 import Patient from './patients';
 import PatientDetails from './patient_details';
 import styled, { keyframes } from 'styled-components';
-import Appointments from './appointments'; // Adjust path as necessary
+import Appointments from './appointments'; 
+// import UpdateProfile from '../../components/update_profile'; 
 
 const HeroSectionContent = () => (
   <HeroSection>
@@ -35,6 +37,7 @@ const DoctorHomePage = () => {
             <StyledNavLink to="sessions">Session</StyledNavLink>
             <StyledNavLink to="patients">Patients</StyledNavLink>
             <StyledNavLink to="appointments">Appointments</StyledNavLink>
+
           </NavLinks>
           <ProfileButton>
             <UserProfile />
@@ -47,15 +50,14 @@ const DoctorHomePage = () => {
           <Route path="home" element={<HeroSectionContent />} />
           <Route path="patients" element={<PatientDetails />} />
           <Route path="sessions" element={<Patient />} />
-          <Route path="appointments" element={<Appointments />} /> {/* Add this */}
+          <Route path="appointments" element={<Appointments />} />
+          {/* <Route path="update_profile/:role" element={<UpdateProfile />} />  */}
         </Routes>
       </Container>
     </>
   );
 };
 
-
-// Keyframes for animation
 const fadeIn = keyframes`
   from {
     opacity: 0;
@@ -65,7 +67,6 @@ const fadeIn = keyframes`
   }
 `;
 
-// Global Style to Remove Default Margins and Scrollbars
 const GlobalStyle = createGlobalStyle`
   html, body {
     margin: 0;
@@ -98,7 +99,6 @@ const Container = styled.div`
   right: 0;
   bottom: 0;
 `;
-
 
 const Navbar = styled.nav`
   display: flex;
