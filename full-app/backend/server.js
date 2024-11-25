@@ -8,7 +8,7 @@ const port = 5000;
 
 // Your Twilio credentials
 const accountSid = 'ACef1c7208b55590f1527cf91a6c3e100a'; // Replace with your Twilio account SID
-const authToken = 'b059434a766d819bc22fd29606fd4720';   // Replace with your Twilio auth token
+const authToken = '63ce01b5a6dfe228101f1a12d2a3ee09';   // Replace with your Twilio auth token
 const client = twilio(accountSid, authToken);
 
 // Middleware to parse JSON requests

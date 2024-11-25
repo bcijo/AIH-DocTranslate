@@ -1,66 +1,3 @@
-// import React from 'react';
-// import styled, { createGlobalStyle } from 'styled-components';
-// import axios from 'axios';
-
-// function Availability() {
-//   const handleCallNow = async () => {
-//     try {
-//       const response = await axios.post('http://localhost:5000/make-call');
-//       alert(response.data.message); // Show the alert when the call is successfully initiated
-//     } catch (error) {
-//       console.error('Error initiating call:', error);
-//       alert('Failed to initiate call');
-//     }
-//   };
-
-//   return (
-//     <>
-//       <GlobalStyle />
-//       <Container>
-//         <CallButton onClick={handleCallNow}>Call Now</CallButton>
-//       </Container>
-//     </>
-//   );
-// }
-
-// const GlobalStyle = createGlobalStyle`
-//   body {
-//     margin: 0;
-//     padding: 0;
-//     font-family: 'Arial', sans-serif;
-//     background: linear-gradient(135deg, #d8e9ff 0%, #ffeef8 100%);
-//     display: flex;
-//     justify-content: center;
-//     align-items: center;
-//     height: 100vh;
-//   }
-// `;
-
-// const Container = styled.div`
-//   display: flex;
-//   flex-direction: column;
-//   align-items: center;
-//   justify-content: center;
-//   height: 100vh;
-// `;
-
-// const CallButton = styled.button`
-//   padding: 15px 30px;
-//   background-color: #3a4d99;
-//   color: white;
-//   border: none;
-//   border-radius: 8px;
-//   font-size: 1.2rem;
-//   cursor: pointer;
-//   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-
-//   &:hover {
-//     background-color: #5569af;
-//   }
-// `;
-
-// export default Availability;
-
 import React, { useState, useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import axios from 'axios';
@@ -91,18 +28,24 @@ function Availability() {
     fetchDoctors();
   }, [user]);
 
-  const handleCallNow = async () => {
-    try {
-      const response = await axios.post('http://localhost:5000/make-call');
-      alert(response.data.message); // Show the alert when the call is successfully initiated
-    } catch (error) {
-      console.error('Error initiating call:', error);
-      alert('Failed to initiate call');
-    }
-  };
-
   const handleDoctorChange = (event) => {
     setSelectedDoctor(event.target.value);
+  };
+
+  const handleCallNow = async () => {
+    const selectedDoctorData = doctors.find(doc => doc.name === selectedDoctor);
+    if (selectedDoctorData && selectedDoctorData.phoneNumber) {
+      const phoneNumber = `+91${selectedDoctorData.phoneNumber}`;
+      try {
+        const response = await axios.post('http://127.0.0.1:5000/make-call', { phoneNumber });
+        alert(response.data.message);
+      } catch (error) {
+        console.error('Error initiating call:', error);
+        alert('Failed to initiate call');
+      }
+    } else {
+      alert('Doctor phone number not available');
+    }
   };
 
   // Helper function to format Firestore timestamps
@@ -114,12 +57,22 @@ function Availability() {
     return 'Invalid timestamp';
   };
 
+  // Helper function to format session times in a human-friendly way
+  const formatSessionTime = (startTime, endTime) => {
+    const start = new Date(startTime.seconds * 1000);
+    const end = new Date(endTime.seconds * 1000);
+    const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+    const dateOptions = { day: 'numeric', month: 'short' };
+    return `${start.toLocaleDateString([], dateOptions)}: ${start.toLocaleTimeString([], options)} - ${end.toLocaleDateString([], dateOptions)}: ${end.toLocaleTimeString([], options)}`;
+  };
+
   return (
     <>
       <GlobalStyle />
       <Container>
         <Title>Doctor Availability</Title>
 
+        <Label>Choose Doctor</Label>
         <Select onChange={handleDoctorChange} value={selectedDoctor}>
           <option value="">Select a Doctor</option>
           {doctors.map((doctor, index) => (
@@ -129,68 +82,63 @@ function Availability() {
           ))}
         </Select>
 
-
         {selectedDoctor && (
-  <DoctorInfo>
-    <h2>{selectedDoctor}</h2>
-    <h3>Sessions:</h3>
-    <SessionTable>
-      <thead>
-        <tr>
-          <th>Start Time</th>
-          <th>End Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        {doctors
-          .find(doc => doc.name === selectedDoctor)
-          ?.sessions.reduce((rows, session, index, array) => {
-            if (index % 2 === 0 && index + 1 < array.length) {
-              rows.push({
-                startTime: formatTimestamp(array[index]),
-                endTime: formatTimestamp(array[index + 1]),
-              });
-            }
-            return rows;
-          }, [])
-          .map((row, index) => (
-            <tr key={index}>
-              <td>{row.startTime}</td>
-              <td>{row.endTime}</td>
-            </tr>
-          ))}
-      </tbody>
-    </SessionTable>
+          <DoctorInfo>
+            <h3>{selectedDoctor}'s Sessions:</h3>
+            <SessionTable>
+              <thead>
+                <tr>
+                  <th>Session</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doctors
+                  .find(doc => doc.name === selectedDoctor)
+                  ?.sessions.reduce((rows, session, index, array) => {
+                    if (index % 2 === 0 && index + 1 < array.length) {
+                      rows.push({
+                        startTime: array[index],
+                        endTime: array[index + 1],
+                      });
+                    }
+                    return rows;
+                  }, [])
+                  .map((row, index) => (
+                    <tr key={index}>
+                      <td>{formatSessionTime(row.startTime, row.endTime)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </SessionTable>
 
-    {(() => {
-      const currentTime = new Date(); // Current time
-      const isAvailable = doctors
-        .find(doc => doc.name === selectedDoctor)
-        ?.sessions.reduce((availability, session, index, array) => {
-          if (index % 2 === 0 && index + 1 < array.length) {
-            const startTime = new Date(array[index].seconds * 1000); // Convert Firestore timestamp to Date
-            const endTime = new Date(array[index + 1].seconds * 1000); // Convert Firestore timestamp to Date
-            if (currentTime >= startTime && currentTime <= endTime) {
-              availability = true;
-            }
-          }
-          return availability;
-        }, false);
+            {(() => {
+              const currentTime = new Date(); // Current time
+              const isAvailable = doctors
+                .find(doc => doc.name === selectedDoctor)
+                ?.sessions.reduce((availability, session, index, array) => {
+                  if (index % 2 === 0 && index + 1 < array.length) {
+                    const startTime = new Date(array[index].seconds * 1000); // Convert Firestore timestamp to Date
+                    const endTime = new Date(array[index + 1].seconds * 1000); // Convert Firestore timestamp to Date
+                    if (currentTime >= startTime && currentTime <= endTime) {
+                      availability = true;
+                    }
+                  }
+                  return availability;
+                }, false);
 
-      if (isAvailable) {
-        return (
-          <>
-            <AvailabilityText isAvailable={true}>Doctor is available</AvailabilityText>
-            <CallButton onClick={handleCallNow}>Call Now</CallButton>
-          </>
-        );
-      } else {
-        return <AvailabilityText isAvailable={false}>Doctor is not available</AvailabilityText>;
-      }
-    })()}
-  </DoctorInfo>
-)}
-
+              if (isAvailable) {
+                return (
+                  <>
+                    <AvailabilityText isAvailable={true}>Doctor is available</AvailabilityText>
+                    <CallButton onClick={handleCallNow}>Call Now</CallButton>
+                  </>
+                );
+              } else {
+                return <AvailabilityText isAvailable={false}>Doctor is not available</AvailabilityText>;
+              }
+            })()}
+          </DoctorInfo>
+        )}
 
       </Container>
     </>
@@ -207,6 +155,7 @@ const GlobalStyle = createGlobalStyle`
     justify-content: center;
     align-items: center;
     height: 100vh;
+    color: #3a4d99;
   }
 `;
 
@@ -216,11 +165,21 @@ const Container = styled.div`
   align-items: center;
   justify-content: center;
   height: 100vh;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 `;
 
 const Title = styled.h1`
   margin-bottom: 20px;
   color: #3a4d99;
+  font-family: 'Arial', sans-serif;
+`;
+
+const Label = styled.label`
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 `;
 
 const Select = styled.select`
@@ -229,11 +188,14 @@ const Select = styled.select`
   border: 1px solid #3a4d99;
   border-radius: 8px;
   margin-bottom: 20px;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 `;
 
 const DoctorInfo = styled.div`
   text-align: center;
-  color: #333;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 
   ul {
     list-style-type: none;
@@ -256,6 +218,7 @@ const CallButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   margin-top: 20px;
+  font-family: 'Arial', sans-serif;
 
   &:hover {
     background-color: #5569af;
@@ -268,6 +231,8 @@ const SessionTable = styled.table`
   margin: 20px 0;
   font-size: 1rem;
   text-align: left;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 
   th, td {
     border: 1px solid #ddd;
@@ -276,8 +241,9 @@ const SessionTable = styled.table`
 
   th {
     background-color: #f4f4f4;
-    color: #333;
+    color: #3a4d99;
     font-weight: bold;
+    text-align: center; /* Center the column header text */
   }
 
   tr:nth-child(even) {
@@ -293,6 +259,7 @@ const AvailabilityText = styled.p`
   font-size: 1.2rem;
   font-weight: bold;
   margin-top: 20px;
+  font-family: 'Arial', sans-serif;
 `;
 
 export default Availability;
