@@ -10,6 +10,9 @@ import pygame
 import uuid
 import threading
 import time
+from twilio.rest import Client
+from dotenv import load_dotenv
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -20,13 +23,19 @@ translator = Translator()
 GOOGLE_API_KEY = "AIzaSyAv97r8UIiqrNZjPVUUpMN7kDxqC1nEx7A"
 genai.configure(api_key=GOOGLE_API_KEY)
 
+# Your Twilio credentials
+account_sid = os.getenv('TWILIO_ACCOUNT_SID')  # Replace with your Twilio account SID
+auth_token =   os.getenv('TWILIO_AUTH_TOKEN')  # Replace with your Twilio auth token
+client = Client(account_sid, auth_token)
+
+
 # Initialize pygame mixer for controlling audio playback globally
 pygame.mixer.init()
 
 # Summarization function using Gemini
 def summarize_text(input_text):
     model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content(f"Summarize the following text into 3 bullet points: {input_text}")
+    response = model.generate_content(f"Summarize the following text: {input_text}")
     return response.text
 
 # Function to speak text using gTTS and save as MP3
@@ -50,11 +59,11 @@ def play_audio(filename):
     try:
         pygame.mixer.music.load(filename)
         pygame.mixer.music.play()
-        
+
         # Wait while music is playing
         while pygame.mixer.music.get_busy():
             time.sleep(0.1)
-        
+
         # Clean up the file after playing
         os.remove(filename)
     except Exception as e:
@@ -74,7 +83,7 @@ def detect_language():
     """
     if 'audio' not in request.files:
         return jsonify({'error': 'No audio file provided'}), 400
-    
+
     file = request.files['audio']
     if file.filename == '':
         return jsonify({'error': 'No audio file selected'}), 400
@@ -82,7 +91,7 @@ def detect_language():
     temp_dir = 'temp'
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
-    
+
     temp_file_path = os.path.join(temp_dir, file.filename)
     file.save(temp_file_path)
 
@@ -133,9 +142,9 @@ def summarize():
     """
     if not request.json or 'text' not in request.json:
         return jsonify({'error': 'No text provided for summarization'}), 400
-    
+
     input_text = request.json['text']
-    
+
     try:
         summary = summarize_text(input_text)
         return jsonify({'summary': summary})
@@ -153,7 +162,7 @@ def speak():
 
     text = request.json['text']
     lang = request.json['lang']  # Language code from the frontend
-    
+
     try:
         # Use gTTS to convert text to speech and save it
         audio_filename = speak_with_gtts(text, lang)
@@ -179,6 +188,42 @@ def stop_speech():
         return jsonify({'message': 'Speech stopped successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+<<<<<<< HEAD
+# @app.route('/make-call', methods=['POST'])
+# def make_call():
+#     phone = '+919148369005'  # Predefined set number to call
+#     print("entered")
+#     try:
+#         call = client.calls.create(
+#             url='http://demo.twilio.com/docs/voice.xml',
+#             to=phone,
+#             from_='+13854744792'  # Your Twilio number
+#         )
+#         return jsonify({'message': 'Call initiated', 'callSid': call.sid})
+#     except Exception as e:
+#         print(f'Error making call: {e}')
+#         return jsonify({'error': 'Failed to make call'}), 500
+
+@app.route('/make-call', methods=['POST'])
+def make_call():
+    data = request.json
+    phone = data.get('phoneNumber')
+    if not phone:
+        return jsonify({'error': 'No phone number provided'}), 400
+    try:
+        call = client.calls.create(
+            url='http://demo.twilio.com/docs/voice.xml',
+            to=phone,
+            from_='+13854744792'
+        )
+        return jsonify({'message': 'Call initiated', 'callSid': call.sid})
+    except Exception as e:
+        print(f'Error making call: {e}')
+        return jsonify({'error': 'Failed to make call'}), 500
+=======
+>>>>>>> bcc4efe3342d281b2538391cbd4bdb12d8b8d7b0
+
 
 if __name__ == '__main__':
     # Run the Flask app

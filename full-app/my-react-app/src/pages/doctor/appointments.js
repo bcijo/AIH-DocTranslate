@@ -1,180 +1,5 @@
-//-------------------------------------with scroll---------------------------------------------------------------------------
-// import React, { useEffect, useState } from 'react';
-// import { doc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
-// import { db } from '../../config/firebaseConfig'; // Adjust path if necessary
-// import { useAuth } from '../../hooks/AuthProvider'; // Assuming AuthProvider handles user authentication
-
-// const Appointments = () => {
-//     const { user } = useAuth(); // Retrieve authenticated user information
-//     const [doctorInfo, setDoctorInfo] = useState(null); // Store doctor data
-//     const [loading, setLoading] = useState(true); // Loading state for fetching doctor info
-//     const [sessions, setSessions] = useState([]); // Manage multiple session inputs
-
-//     useEffect(() => {
-//         // Fetch doctor information from Firestore
-//         const fetchDoctorInfo = async () => {
-//             if (user && user.uid) {
-//                 try {
-//                     const docRef = doc(db, 'doctors', user.uid);
-//                     const docSnap = await getDoc(docRef);
-
-//                     if (docSnap.exists()) {
-//                         setDoctorInfo(docSnap.data());
-//                     } else {
-//                         console.log('No doctor information found.');
-//                     }
-//                 } catch (error) {
-//                     console.error('Error fetching doctor information:', error);
-//                 } finally {
-//                     setLoading(false);
-//                 }
-//             }
-//         };
-
-//         fetchDoctorInfo();
-//     }, [user]);
-
-//     const handleAddNewSessionInput = () => {
-//         // Add a new empty session input
-//         setSessions([...sessions, { startTime: '', endTime: '' }]);
-//     };
-
-//     const handleSessionChange = (index, field, value) => {
-//         // Update the start time or end time for a specific session
-//         const updatedSessions = [...sessions];
-//         updatedSessions[index][field] = value;
-//         setSessions(updatedSessions);
-//     };
-
-//     const handleSubmitSessions = async () => {
-//         try {
-//             const docRef = doc(db, 'doctors', user.uid);
-//             const sessionTimestamps = sessions.flatMap(({ startTime, endTime }) => [
-//                 Timestamp.fromDate(new Date(startTime)),
-//                 Timestamp.fromDate(new Date(endTime)),
-//             ]);
-
-//             // Update Firestore document with all session timestamps
-//             await updateDoc(docRef, {
-//                 sessions: arrayUnion(...sessionTimestamps),
-//             });
-
-//             // Update local state to include new sessions
-//             setDoctorInfo((prev) => ({
-//                 ...prev,
-//                 sessions: [...(prev?.sessions || []), ...sessionTimestamps],
-//             }));
-
-//             // Clear session inputs
-//             setSessions([]);
-//         } catch (error) {
-//             console.error('Error submitting sessions:', error);
-//         }
-//     };
-
-//     if (loading) {
-//         return <p>Loading doctor information...</p>;
-//     }
-
-//     if (!doctorInfo) {
-//         return <p>No doctor information found.</p>;
-//     }
-
-//     // Format the session timestamps into readable strings and display in a table format
-//     const formattedSessions = doctorInfo.sessions?.map((session, index) => {
-//         const date = new Date(session.seconds * 1000);
-//         return date.toLocaleString(); // Converts the timestamp to a readable date format
-//     });
-
-//     // Organize sessions in pairs for start time and end time
-//     const sessionPairs = [];
-//     for (let i = 0; i < formattedSessions.length; i += 2) {
-//         sessionPairs.push({
-//             startTime: formattedSessions[i],
-//             endTime: formattedSessions[i + 1] || 'N/A', // If there's an odd number of sessions, mark the end time as 'N/A'
-//         });
-//     }
-
-//     return (
-//         <div style={{ height: '100vh', overflowY: 'auto' }}> {/* Added scrollable container */}
-//             <h1>Appointments</h1>
-//             <p>Manage your appointments here.</p>
-
-//             <div>
-//                 <h3>Doctor Information</h3>
-//                 <p><strong>Name:</strong> {doctorInfo.name}</p>
-//                 <p><strong>Email:</strong> {doctorInfo.email}</p>
-//                 <p><strong>Phone Number:</strong> {doctorInfo.phoneNumber}</p>
-//                 <p><strong>Department:</strong> {doctorInfo.department}</p>
-//                 <p><strong>Hospital:</strong> {doctorInfo.hospital}</p>
-
-//                 {/* Render sessions in a table format */}
-//                 {doctorInfo.sessions && (
-//                     <div>
-//                         <h4>Your Current Sessions</h4>
-//                         <table>
-//                             <thead>
-//                                 <tr>
-//                                     <th>Start Time</th>
-//                                     <th>End Time</th>
-//                                 </tr>
-//                             </thead>
-//                             <tbody>
-//                                 {sessionPairs.map((session, index) => (
-//                                     <tr key={index}>
-//                                         <td>{session.startTime}</td>
-//                                         <td>{session.endTime}</td>
-//                                     </tr>
-//                                 ))}
-//                             </tbody>
-//                         </table>
-//                     </div>
-//                 )}
-
-//                 {/* Add new session inputs */}
-//                 <div>
-//                     <h4>Set your Available Sessions</h4>
-//                     {sessions.map((session, index) => (
-//                         <div key={index} style={{ marginBottom: '10px' }}>
-//                             <label>Start Time</label>
-//                             <input
-//                                 type="datetime-local"
-//                                 value={session.startTime}
-//                                 onChange={(e) =>
-//                                     handleSessionChange(index, 'startTime', e.target.value)
-//                                 }
-//                                 placeholder="Start Time"
-//                                 style={{ marginRight: '10px' }}
-//                             />
-//                             <label>End Time</label>
-//                             <input
-//                                 type="datetime-local"
-//                                 value={session.endTime}
-//                                 onChange={(e) =>
-//                                     handleSessionChange(index, 'endTime', e.target.value)
-//                                 }
-//                                 placeholder="End Time"
-//                             />
-//                         </div>
-//                     ))}
-//                     <button onClick={handleAddNewSessionInput} style={{ marginTop: '10px' }}>
-//                         Enter New Session
-//                     </button>
-//                 </div>
-
-//                 {/* Submit all sessions */}
-//                 <div style={{ marginTop: '20px' }}>
-//                     <button onClick={handleSubmitSessions}>Submit Sessions</button>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// };
-
-// export default Appointments;
-//---------------------------------------------------------------------------------------------------------------
 import React, { useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebaseConfig';
 import { useAuth } from '../../hooks/AuthProvider';
 import styled from 'styled-components';
@@ -184,6 +9,7 @@ const Appointments = () => {
     const [doctorInfo, setDoctorInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [sessions, setSessions] = useState([]);
+    const [selectedSessionIndices, setSelectedSessionIndices] = useState([]);
 
     useEffect(() => {
         const fetchDoctorInfo = async () => {
@@ -219,26 +45,100 @@ const Appointments = () => {
     };
 
     const handleSubmitSessions = async () => {
+        const currentTime = new Date();
+
+        // Validate each session's start and end times
+        for (const { startTime, endTime } of sessions) {
+            if (!startTime || !endTime) {
+                console.error('Both start time and end time must be filled.');
+                alert('Please fill out both start and end times for all sessions.');
+                return;
+            }
+
+            const start = new Date(startTime);
+            const end = new Date(endTime);
+
+            if (start < currentTime) {
+                console.error('Start time must be greater than the current time.');
+                alert('Start time must be greater than the current time.');
+                return;
+            }
+
+            if (start >= end) {
+                console.error('Start time must be earlier than end time.');
+                alert('Start time must be earlier than end time for all sessions.');
+                return;
+            }
+        }
+
         try {
             const docRef = doc(db, 'doctors', user.uid);
+
+            // Convert sessions to Firestore Timestamps
             const sessionTimestamps = sessions.flatMap(({ startTime, endTime }) => [
                 Timestamp.fromDate(new Date(startTime)),
                 Timestamp.fromDate(new Date(endTime)),
             ]);
 
+            // Update Firestore with new sessions
             await updateDoc(docRef, {
                 sessions: arrayUnion(...sessionTimestamps),
             });
 
+            // Update local state
             setDoctorInfo((prev) => ({
                 ...prev,
                 sessions: [...(prev?.sessions || []), ...sessionTimestamps],
             }));
 
+            // Clear session inputs
             setSessions([]);
         } catch (error) {
             console.error('Error submitting sessions:', error);
         }
+    };
+
+    const handleRemoveSession = async () => {
+        if (selectedSessionIndices.length === 0) {
+            alert('Please select at least one session to remove.');
+            return;
+        }
+
+        const sessionsToRemove = selectedSessionIndices.flatMap(index =>
+            doctorInfo.sessions.slice(index * 2, index * 2 + 2)
+        );
+
+        try {
+            const docRef = doc(db, 'doctors', user.uid);
+
+            // Remove the selected sessions from Firestore
+            await updateDoc(docRef, {
+                sessions: arrayRemove(...sessionsToRemove),
+            });
+
+            // Update local state
+            setDoctorInfo((prev) => ({
+                ...prev,
+                sessions: prev.sessions.filter((_, index) =>
+                    !selectedSessionIndices.some(selectedIndex =>
+                        index >= selectedIndex * 2 && index < selectedIndex * 2 + 2
+                    )
+                ),
+            }));
+
+            // Clear selected session indices
+            setSelectedSessionIndices([]);
+        } catch (error) {
+            console.error('Error removing sessions:', error);
+        }
+    };
+
+    const toggleSessionSelection = (index) => {
+        setSelectedSessionIndices((prevSelected) =>
+            prevSelected.includes(index)
+                ? prevSelected.filter((i) => i !== index)
+                : [...prevSelected, index]
+        );
     };
 
     if (loading) {
@@ -249,53 +149,53 @@ const Appointments = () => {
         return <p>No doctor information found.</p>;
     }
 
-    const formattedSessions = doctorInfo.sessions?.map((session) => {
-        const date = new Date(session.seconds * 1000);
-        return date.toLocaleString();
-    });
+    const formatSessionTime = (startTime, endTime) => {
+        const start = new Date(startTime.seconds * 1000);
+        const end = new Date(endTime.seconds * 1000);
+        const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+        const dateOptions = { day: 'numeric', month: 'short' };
+        return `${start.toLocaleDateString([], dateOptions)}: ${start.toLocaleTimeString([], options)} - ${end.toLocaleDateString([], dateOptions)}: ${end.toLocaleTimeString([], options)}`;
+    };
 
     const sessionPairs = [];
-    for (let i = 0; i < formattedSessions.length; i += 2) {
+    for (let i = 0; i < doctorInfo.sessions.length; i += 2) {
         sessionPairs.push({
-            startTime: formattedSessions[i],
-            endTime: formattedSessions[i + 1] || 'N/A',
+            startTime: doctorInfo.sessions[i],
+            endTime: doctorInfo.sessions[i + 1] || null,
         });
     }
 
     return (
         <Container>
             <Title>Appointments</Title>
-            {/* <Description>Manage your appointments here.</Description> */}
-
-            {/* <DoctorInfo>
-                <h3>Doctor Information</h3>
-                <p><strong>Name:</strong> {doctorInfo.name}</p>
-                <p><strong>Email:</strong> {doctorInfo.email}</p>
-                <p><strong>Phone Number:</strong> {doctorInfo.phoneNumber}</p>
-                <p><strong>Department:</strong> {doctorInfo.department}</p>
-                <p><strong>Hospital:</strong> {doctorInfo.hospital}</p>
-            </DoctorInfo> */}
-
-            {doctorInfo.sessions && (
+            {doctorInfo.sessions && doctorInfo.sessions.length > 0 ? (
                 <SessionsTable>
                     <h4>Your Current Sessions</h4>
                     <table>
                         <thead>
                             <tr>
-                                <th>Start Time</th>
-                                <th>End Time</th>
+                                <th>Session</th>
+                                <th>Select session to remove</th>
                             </tr>
                         </thead>
                         <tbody>
                             {sessionPairs.map((session, index) => (
                                 <tr key={index}>
-                                    <td>{session.startTime}</td>
-                                    <td>{session.endTime}</td>
+                                    <td>{formatSessionTime(session.startTime, session.endTime)}</td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedSessionIndices.includes(index)}
+                                            onChange={() => toggleSessionSelection(index)}
+                                        />
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </SessionsTable>
+            ) : (
+                <NoSessionsMessage>No sessions scheduled as of now</NoSessionsMessage>
             )}
 
             <SessionForm>
@@ -326,8 +226,11 @@ const Appointments = () => {
             </SessionForm>
 
             <SubmitSection>
-                <Button onClick={handleSubmitSessions}>Submit Sessions</Button>
+                <Button onClick={handleSubmitSessions}>Submit New Sessions</Button>
             </SubmitSection>
+            <RemoveSection>
+                <Button onClick={handleRemoveSession}>Remove Chosen Session</Button>
+            </RemoveSection>
         </Container>
     );
 };
@@ -340,26 +243,32 @@ const Container = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+    color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const Title = styled.h1`
     color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const Description = styled.p`
     font-size: 1.2rem;
-    color: #333;
+    color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const DoctorInfo = styled.div`
     text-align: center;
-    color: #333;
+    color: #3a4d99;
     margin-bottom: 20px;
+    font-family: 'Arial', sans-serif;
 `;
 
 const SessionsTable = styled.div`
     margin-bottom: 20px;
-    text-align: center; /* Add this line to center the content */
+    text-align: center;
+    font-family: 'Arial', sans-serif;
 
     table {
         width: 100%;
@@ -373,11 +282,13 @@ const SessionsTable = styled.div`
     th, td {
         padding: 8px;
         border: 1px solid #ddd;
+        color: #3a4d99;
     }
 
     th {
         background-color: #f4f4f4;
-        color: #333;
+        color: #3a4d99;
+        text-align: center; /* Center the column heading text */
     }
 
     tr:nth-child(even) {
@@ -389,22 +300,31 @@ const SessionsTable = styled.div`
     }
 `;
 
+const NoSessionsMessage = styled.p`
+    font-size: 1.2rem;
+    color: #3a4d99;
+    font-family: 'Arial', sans-serif;
+    margin-top: 20px;
+`;
 
 const SessionForm = styled.div`
     width: 100%;
     max-width: 600px;
     margin-top: 20px;
     text-align: center;
+    font-family: 'Arial', sans-serif;
 `;
 
 const SessionInput = styled.div`
     margin-bottom: 10px;
-    
+
     label {
         display: block;
         margin-bottom: 5px;
+        color: #3a4d99;
+        font-family: 'Arial', sans-serif;
     }
-    
+
     input {
         width: 100%;
         padding: 10px;
@@ -412,6 +332,8 @@ const SessionInput = styled.div`
         font-size: 1rem;
         border: 1px solid #ddd;
         border-radius: 8px;
+        color: #3a4d99;
+        font-family: 'Arial', sans-serif;
     }
 `;
 
@@ -424,6 +346,7 @@ const Button = styled.button`
     font-size: 1.2rem;
     cursor: pointer;
     margin-top: 10px;
+    font-family: 'Arial', sans-serif;
 
     &:hover {
         background-color: #5569af;
@@ -431,6 +354,10 @@ const Button = styled.button`
 `;
 
 const SubmitSection = styled.div`
+    margin-top: 20px;
+`;
+
+const RemoveSection = styled.div`
     margin-top: 20px;
 `;
 
