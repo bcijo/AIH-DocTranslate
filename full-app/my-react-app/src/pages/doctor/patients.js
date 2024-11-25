@@ -83,7 +83,7 @@ function Patient() {
   // Function to translate text using a translation API
   const translateText = async (text, targetLanguage) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/translate', {
+      const response = await axios.post('https://59c65788-e541-451a-a3ce-21cf84812b95-00-1qnb7kob800bc.sisko.replit.dev:5000/api/translate', {
         text: text,
         target_lang: targetLanguage,
       });
@@ -98,7 +98,7 @@ function Patient() {
   const handleSummarize = async (text) => {
     try {
       setLoading(true);
-      const response = await axios.post('http://localhost:5000/api/summarize', {
+      const response = await axios.post('https://59c65788-e541-451a-a3ce-21cf84812b95-00-1qnb7kob800bc.sisko.replit.dev:5000/api/summarize', {
         text: text,
       });
       return response.data.summary;
@@ -172,7 +172,7 @@ function Patient() {
       target = doctorLanguage;
       const translated = await translateText(textToTranslate, target);
       setTranslatedPatientProblem(translated);
-    } else if (step === 2) { 
+    } else if (step === 2) {
       const summarizedText = await handleSummarize(doctorFeedback);
       setDoctorSummary(summarizedText);
       textToTranslate = summarizedText;
@@ -211,12 +211,21 @@ function Patient() {
     if (!text) return;
 
     try {
-      const response = await axios.post('http://localhost:5000/api/speak', {
+      const response = await axios.post('https://59c65788-e541-451a-a3ce-21cf84812b95-00-1qnb7kob800bc.sisko.replit.dev:5000/api/speak', {
         text: text,
         lang: getLanguageCode(step),
+      }, {
+        responseType: 'blob', // Ensure the response is treated as a blob
       });
 
-      console.log(response.data.message);
+      const url = URL.createObjectURL(response.data);
+      const audio = new Audio(url);
+      audio.play();
+
+      audio.onended = () => {
+        URL.revokeObjectURL(url); // Clean up the URL object
+      };
+
     } catch (error) {
       console.error('Speech Error:', error);
     }
@@ -224,8 +233,11 @@ function Patient() {
 
   // Stop speaking
   const stopSpeaking = () => {
-    if (synth) synth.cancel();
-    setUtterance(null);
+    const audio = document.querySelector('audio');
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
   };
 
   // Language code mapper
@@ -235,7 +247,7 @@ function Patient() {
       2: gttsLanguageMap[patientLanguage], // Patient's preferred language for step 2
       3: gttsLanguageMap[patientLanguage], // Patient's preferred language for step 3
     };
-    return languageMap[step] || 'en-US';
+    return languageMap[step] || 'en';
   };
 
   // Function to save visit details to Firestore
@@ -324,7 +336,6 @@ function Patient() {
               )}
               {(step === 2 || step === 3) && (
                 <>
-                 
                   <Button onClick={handleTranslate} disabled={loading}>
                     Summarise & Translate
                   </Button>
@@ -585,4 +596,3 @@ const SelectPatientText = styled.div`
 `;
 
 export default Patient;
-
