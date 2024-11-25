@@ -1,26 +1,30 @@
-// src/components/UserProfile.js
 import React, { useState, useRef, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../hooks/AuthProvider';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
 import { useNavigate } from 'react-router-dom';
+import UpdateProfile from './update_profile';
 
 const UserProfile = () => {
-  const { user } = useAuth();
+  const { user, error, hasRole } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [profileError, setProfileError] = useState(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
+      setIsOpen(false); // Close dropdown before signing out
       await signOut(auth);
+      navigate('/'); // Redirect to home after signout
     } catch (error) {
       console.error('Error signing out:', error);
+      setProfileError('Failed to sign out. Please try again.');
     }
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -32,36 +36,97 @@ const UserProfile = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleUpdateProfile = () => {
+    if (!user?.role) {
+      setProfileError('User role not found. Please contact support.');
+      return;
+    }
+
+    switch (user.role.toLowerCase()) {
+      case 'doctor':
+        navigate('./update_profile/doctor');
+        break;
+      case 'patient':
+        navigate('./update_profile/patient');
+        break;
+      default:
+        setProfileError(`Unsupported role: ${user.role}`);
+    }
+    setIsOpen(false); // Close dropdown after navigation
+  };
+
+  // Early return if no user
+  if (!user) {
+    return null; // Or a fallback UI
+  }
+
   return (
     <ProfileContainer ref={dropdownRef}>
-      <ProfileButton onClick={() => setIsOpen(!isOpen)}>
-        <ProfileInitial>{user?.email?.[0].toUpperCase() || 'U'}</ProfileInitial>
+      <ProfileButton
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="User profile menu"
+        aria-expanded={isOpen}
+      >
+        <ProfileInitial>
+          {user.displayName?.[0].toUpperCase() || user.email?.[0].toUpperCase() || 'U'}
+        </ProfileInitial>
       </ProfileButton>
 
       {isOpen && (
-        <DropdownMenu>
+        <DropdownMenu role="menu">
           <UserInfo>
             <UserDetails>
-              <UserName>{user?.displayName || 'User'}</UserName>
-              <UserEmail>{user?.email}</UserEmail>
+              <UserName>{user.displayName || 'User'}</UserName>
+              <UserEmail>{user.email}</UserEmail>
+              <UserRole>Role: {user.role || 'Not Set'}</UserRole>
             </UserDetails>
           </UserInfo>
           <Divider />
-          <MenuItem onClick={() => navigate('/update-profile')}>
+          <MenuItem
+            onClick={handleUpdateProfile}
+            role="menuitem"
+            disabled={!user.role}
+          >
             <MenuIcon>⚙</MenuIcon>
             Update Profile
           </MenuItem>
-          <MenuItem onClick={handleSignOut}>
+          <MenuItem
+            onClick={handleSignOut}
+            role="menuitem"
+          >
             <MenuIcon>↪</MenuIcon>
             Sign Out
           </MenuItem>
+          {profileError && (
+            <ErrorMessage>
+              {profileError}
+            </ErrorMessage>
+          )}
         </DropdownMenu>
       )}
+
+      <Routes>
+      {/* Other routes */}
+      <Route path="/update_profile/:role" element={<UpdateProfile />} />
+    </Routes>
     </ProfileContainer>
   );
 };
 
-// Styled Components
+const UserRole = styled.span`
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+`;
+
+const ErrorMessage = styled.div`
+  color: #dc3545;
+  font-size: 12px;
+  padding: 8px 16px;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+`;
+
 const ProfileContainer = styled.div`
   position: relative;
   z-index: 1000;
