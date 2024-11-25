@@ -168,7 +168,7 @@ const Appointments = () => {
     return (
         <Container>
             <Title>Appointments</Title>
-            {doctorInfo.sessions && (
+            {doctorInfo.sessions && doctorInfo.sessions.length > 0 ? (
                 <SessionsTable>
                     <h4>Your Current Sessions</h4>
                     <table>
@@ -194,6 +194,8 @@ const Appointments = () => {
                         </tbody>
                     </table>
                 </SessionsTable>
+            ) : (
+                <NoSessionsMessage>No sessions scheduled as of now</NoSessionsMessage>
             )}
 
             <SessionForm>
@@ -296,6 +298,13 @@ const SessionsTable = styled.div`
     tr:hover {
         background-color: #f1f1f1;
     }
+`;
+
+const NoSessionsMessage = styled.p`
+    font-size: 1.2rem;
+    color: #3a4d99;
+    font-family: 'Arial', sans-serif;
+    margin-top: 20px;
 `;
 
 const SessionForm = styled.div`
