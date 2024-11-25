@@ -224,10 +224,10 @@ const Appointments = () => {
             </SessionForm>
 
             <SubmitSection>
-                <Button onClick={handleSubmitSessions}>Submit Sessions</Button>
+                <Button onClick={handleSubmitSessions}>Submit New Sessions</Button>
             </SubmitSection>
             <RemoveSection>
-                <Button onClick={handleRemoveSession}>Remove Session</Button>
+                <Button onClick={handleRemoveSession}>Remove Chosen Session</Button>
             </RemoveSection>
         </Container>
     );
@@ -241,26 +241,32 @@ const Container = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+    color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const Title = styled.h1`
     color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const Description = styled.p`
     font-size: 1.2rem;
-    color: #333;
+    color: #3a4d99;
+    font-family: 'Arial', sans-serif;
 `;
 
 const DoctorInfo = styled.div`
     text-align: center;
-    color: #333;
+    color: #3a4d99;
     margin-bottom: 20px;
+    font-family: 'Arial', sans-serif;
 `;
 
 const SessionsTable = styled.div`
     margin-bottom: 20px;
     text-align: center;
+    font-family: 'Arial', sans-serif;
 
     table {
         width: 100%;
@@ -274,11 +280,13 @@ const SessionsTable = styled.div`
     th, td {
         padding: 8px;
         border: 1px solid #ddd;
+        color: #3a4d99;
     }
 
     th {
         background-color: #f4f4f4;
-        color: #333;
+        color: #3a4d99;
+        text-align: center; /* Center the column heading text */
     }
 
     tr:nth-child(even) {
@@ -295,6 +303,7 @@ const SessionForm = styled.div`
     max-width: 600px;
     margin-top: 20px;
     text-align: center;
+    font-family: 'Arial', sans-serif;
 `;
 
 const SessionInput = styled.div`
@@ -303,6 +312,8 @@ const SessionInput = styled.div`
     label {
         display: block;
         margin-bottom: 5px;
+        color: #3a4d99;
+        font-family: 'Arial', sans-serif;
     }
 
     input {
@@ -312,6 +323,8 @@ const SessionInput = styled.div`
         font-size: 1rem;
         border: 1px solid #ddd;
         border-radius: 8px;
+        color: #3a4d99;
+        font-family: 'Arial', sans-serif;
     }
 `;
 
@@ -324,6 +337,7 @@ const Button = styled.button`
     font-size: 1.2rem;
     cursor: pointer;
     margin-top: 10px;
+    font-family: 'Arial', sans-serif;
 
     &:hover {
         background-color: #5569af;

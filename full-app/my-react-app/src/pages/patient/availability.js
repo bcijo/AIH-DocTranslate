@@ -84,7 +84,7 @@ function Availability() {
 
         {selectedDoctor && (
           <DoctorInfo>
-            <h3>Doctor {selectedDoctor}'s Sessions:</h3>
+            <h3>{selectedDoctor}'s Sessions:</h3>
             <SessionTable>
               <thead>
                 <tr>
@@ -155,6 +155,7 @@ const GlobalStyle = createGlobalStyle`
     justify-content: center;
     align-items: center;
     height: 100vh;
+    color: #3a4d99;
   }
 `;
 
@@ -164,17 +165,21 @@ const Container = styled.div`
   align-items: center;
   justify-content: center;
   height: 100vh;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 `;
 
 const Title = styled.h1`
   margin-bottom: 20px;
   color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 `;
 
 const Label = styled.label`
   margin-bottom: 10px;
   font-size: 1.2rem;
   color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 `;
 
 const Select = styled.select`
@@ -183,11 +188,14 @@ const Select = styled.select`
   border: 1px solid #3a4d99;
   border-radius: 8px;
   margin-bottom: 20px;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 `;
 
 const DoctorInfo = styled.div`
   text-align: center;
-  color: #333;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 
   ul {
     list-style-type: none;
@@ -210,6 +218,7 @@ const CallButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   margin-top: 20px;
+  font-family: 'Arial', sans-serif;
 
   &:hover {
     background-color: #5569af;
@@ -222,6 +231,8 @@ const SessionTable = styled.table`
   margin: 20px 0;
   font-size: 1rem;
   text-align: left;
+  color: #3a4d99;
+  font-family: 'Arial', sans-serif;
 
   th, td {
     border: 1px solid #ddd;
@@ -230,8 +241,9 @@ const SessionTable = styled.table`
 
   th {
     background-color: #f4f4f4;
-    color: #333;
+    color: #3a4d99;
     font-weight: bold;
+    text-align: center; /* Center the column header text */
   }
 
   tr:nth-child(even) {
@@ -247,6 +259,7 @@ const AvailabilityText = styled.p`
   font-size: 1.2rem;
   font-weight: bold;
   margin-top: 20px;
+  font-family: 'Arial', sans-serif;
 `;
 
 export default Availability;
