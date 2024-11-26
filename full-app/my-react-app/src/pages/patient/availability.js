@@ -37,7 +37,7 @@ function Availability() {
     if (selectedDoctorData && selectedDoctorData.phoneNumber) {
       const phoneNumber = `+91${selectedDoctorData.phoneNumber}`;
       try {
-        const response = await axios.post('http://127.0.0.1:5000/make-call', { phoneNumber });
+        const response = await axios.post('https://59c65788-e541-451a-a3ce-21cf84812b95-00-1qnb7kob800bc.sisko.replit.dev:5000/api/make-call', { phoneNumber });
         alert(response.data.message);
       } catch (error) {
         console.error('Error initiating call:', error);
@@ -46,15 +46,6 @@ function Availability() {
     } else {
       alert('Doctor phone number not available');
     }
-  };
-
-  // Helper function to format Firestore timestamps
-  const formatTimestamp = (timestamp) => {
-    if (timestamp && timestamp.seconds) {
-      const date = new Date(timestamp.seconds * 1000); // Convert seconds to milliseconds
-      return date.toLocaleString(); // Format as human-readable date/time
-    }
-    return 'Invalid timestamp';
   };
 
   // Helper function to format session times in a human-friendly way
@@ -85,61 +76,73 @@ function Availability() {
         {selectedDoctor && (
           <DoctorInfo>
             <h3>{selectedDoctor}'s Sessions:</h3>
-            <SessionTable>
-              <thead>
-                <tr>
-                  <th>Session</th>
-                </tr>
-              </thead>
-              <tbody>
-                {doctors
-                  .find(doc => doc.name === selectedDoctor)
-                  ?.sessions.reduce((rows, session, index, array) => {
-                    if (index % 2 === 0 && index + 1 < array.length) {
-                      rows.push({
-                        startTime: array[index],
-                        endTime: array[index + 1],
-                      });
-                    }
-                    return rows;
-                  }, [])
-                  .map((row, index) => (
-                    <tr key={index}>
-                      <td>{formatSessionTime(row.startTime, row.endTime)}</td>
+            {(() => {
+              const selectedDoctorData = doctors.find(doc => doc.name === selectedDoctor);
+              const hasInitialEmptyString = selectedDoctorData.sessions && selectedDoctorData.sessions[0] === "";
+              const validSessions = hasInitialEmptyString
+                ? selectedDoctorData.sessions.slice(1).filter(session => session !== "")
+                : selectedDoctorData.sessions.filter(session => session !== "");
+
+              if (validSessions.length === 0) {
+                return <NoSessionsMessage>The doctor does not have any sessions so far.</NoSessionsMessage>;
+              }
+
+              return (
+                <SessionTable>
+                  <thead>
+                    <tr>
+                      <th>Session</th>
                     </tr>
-                  ))}
-              </tbody>
-            </SessionTable>
+                  </thead>
+                  <tbody>
+                    {validSessions.reduce((rows, session, index, array) => {
+                      if (index % 2 === 0 && index + 1 < array.length) {
+                        rows.push({
+                          startTime: array[index],
+                          endTime: array[index + 1],
+                        });
+                      }
+                      return rows;
+                    }, []).map((row, index) => (
+                      <tr key={index}>
+                        <td>{formatSessionTime(row.startTime, row.endTime)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </SessionTable>
+              );
+            })()}
 
             {(() => {
+              const selectedDoctorData = doctors.find(doc => doc.name === selectedDoctor);
+              const validSessions = selectedDoctorData?.sessions.filter(session => session !== "");
               const currentTime = new Date(); // Current time
-              const isAvailable = doctors
-                .find(doc => doc.name === selectedDoctor)
-                ?.sessions.reduce((availability, session, index, array) => {
-                  if (index % 2 === 0 && index + 1 < array.length) {
-                    const startTime = new Date(array[index].seconds * 1000); // Convert Firestore timestamp to Date
-                    const endTime = new Date(array[index + 1].seconds * 1000); // Convert Firestore timestamp to Date
-                    if (currentTime >= startTime && currentTime <= endTime) {
-                      availability = true;
-                    }
+              const isAvailable = validSessions.reduce((availability, session, index, array) => {
+                if (index % 2 === 0 && index + 1 < array.length) {
+                  const startTime = new Date(array[index].seconds * 1000); // Convert Firestore timestamp to Date
+                  const endTime = new Date(array[index + 1].seconds * 1000); // Convert Firestore timestamp to Date
+                  if (currentTime >= startTime && currentTime <= endTime) {
+                    availability = true;
                   }
-                  return availability;
-                }, false);
+                }
+                return availability;
+              }, false);
 
-              if (isAvailable) {
-                return (
-                  <>
-                    <AvailabilityText isAvailable={true}>Doctor is available</AvailabilityText>
-                    <CallButton onClick={handleCallNow}>Call Now</CallButton>
-                  </>
-                );
-              } else {
-                return <AvailabilityText isAvailable={false}>Doctor is not available</AvailabilityText>;
+              if (validSessions.length > 0) {
+                if (isAvailable) {
+                  return (
+                    <>
+                      <AvailabilityText isAvailable={true}>Doctor is available</AvailabilityText>
+                      <CallButton onClick={handleCallNow}>Call Now</CallButton>
+                    </>
+                  );
+                } else {
+                  return <AvailabilityText isAvailable={false}>Doctor is not available</AvailabilityText>;
+                }
               }
             })()}
           </DoctorInfo>
         )}
-
       </Container>
     </>
   );
@@ -254,6 +257,15 @@ const SessionTable = styled.table`
     background-color: #f1f1f1;
   }
 `;
+
+const NoSessionsMessage = styled.p`
+  font-size: 1.2rem;
+  color: #00008B; /* Dark blue color */
+  font-weight: bold;
+  margin-top: 20px;
+  font-family: 'Arial', sans-serif;
+`;
+
 const AvailabilityText = styled.p`
   color: ${(props) => (props.isAvailable ? 'green' : 'red')};
   font-size: 1.2rem;

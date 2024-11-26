@@ -19,7 +19,7 @@ const DoctorForm = ({ user }) => {
       console.log('DoctorForm unmounted');
     };
   }, []);
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -40,8 +40,9 @@ const DoctorForm = ({ user }) => {
           phoneNumber,
           department,
           hospital,
-          userId: user.uid,  // Add this to link with user account
-          email: user.email
+          userId: user.uid, 
+          email: user.email,
+          sessions: [""] 
     });
     console.log('Doctor details saved successfully');
 

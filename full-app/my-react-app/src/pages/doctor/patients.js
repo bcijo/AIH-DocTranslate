@@ -261,6 +261,9 @@ function Patient() {
         PatientCondition: translatedPatientProblem,
         DoctorRecommendation: doctorFeedback,
         MedicationPrescription: medicationPrescription,
+        PatientLanguage: patientLanguage,
+        TranslatedDoctorRecommendation: translatedDoctorFeedback,
+        TranslatedMedicationPrescription: translatedMedicationPrescription,
         VisitDate: new Date().toISOString(),
         VisitType: 'in-person',
       });
@@ -270,7 +273,6 @@ function Patient() {
       console.error('Error saving visit details:', error);
     }
   };
-
   // Function to reset the form
   const resetForm = () => {
     setPatientProblem('');

@@ -105,7 +105,7 @@ const Appointments = () => {
         }
 
         const sessionsToRemove = selectedSessionIndices.flatMap(index =>
-            doctorInfo.sessions.slice(index * 2, index * 2 + 2)
+            doctorInfo.sessions.slice(index * 2 + 2, index * 2 + 4)
         );
 
         try {
@@ -117,14 +117,17 @@ const Appointments = () => {
             });
 
             // Update local state
-            setDoctorInfo((prev) => ({
-                ...prev,
-                sessions: prev.sessions.filter((_, index) =>
+            setDoctorInfo((prev) => {
+                const updatedSessions = prev.sessions.filter((_, index) =>
                     !selectedSessionIndices.some(selectedIndex =>
-                        index >= selectedIndex * 2 && index < selectedIndex * 2 + 2
+                        index >= selectedIndex * 2 + 2 && index < selectedIndex * 2 + 4
                     )
-                ),
-            }));
+                );
+                return {
+                    ...prev,
+                    sessions: updatedSessions,
+                };
+            });
 
             // Clear selected session indices
             setSelectedSessionIndices([]);
@@ -149,6 +152,14 @@ const Appointments = () => {
         return <p>No doctor information found.</p>;
     }
 
+    // Check if the first session is an empty string
+    const hasInitialEmptyString = doctorInfo.sessions && doctorInfo.sessions[0] === "";
+
+    // Filter out the initial empty string and process the remaining sessions
+    const validSessions = hasInitialEmptyString
+        ? doctorInfo.sessions.slice(1).filter(session => session !== "")
+        : doctorInfo.sessions.filter(session => session !== "");
+
     const formatSessionTime = (startTime, endTime) => {
         const start = new Date(startTime.seconds * 1000);
         const end = new Date(endTime.seconds * 1000);
@@ -158,17 +169,19 @@ const Appointments = () => {
     };
 
     const sessionPairs = [];
-    for (let i = 0; i < doctorInfo.sessions.length; i += 2) {
+    for (let i = 0; i < validSessions.length; i += 2) {
         sessionPairs.push({
-            startTime: doctorInfo.sessions[i],
-            endTime: doctorInfo.sessions[i + 1] || null,
+            startTime: validSessions[i],
+            endTime: validSessions[i + 1] || null,
         });
     }
 
     return (
         <Container>
             <Title>Appointments</Title>
-            {doctorInfo.sessions && doctorInfo.sessions.length > 0 ? (
+            {validSessions && validSessions.length === 0 ? (
+                <NoAppointmentsMessage>No appointments so far</NoAppointmentsMessage>
+            ) : (
                 <SessionsTable>
                     <h4>Your Current Sessions</h4>
                     <table>
@@ -194,8 +207,6 @@ const Appointments = () => {
                         </tbody>
                     </table>
                 </SessionsTable>
-            ) : (
-                <NoSessionsMessage>No sessions scheduled as of now</NoSessionsMessage>
             )}
 
             <SessionForm>
@@ -300,10 +311,10 @@ const SessionsTable = styled.div`
     }
 `;
 
-const NoSessionsMessage = styled.p`
+const NoAppointmentsMessage = styled.p`
     font-size: 1.2rem;
-    color: #3a4d99;
-    font-family: 'Arial', sans-serif;
+    color: #00008B; /* Dark blue color */
+    font-weight: bold;
     margin-top: 20px;
 `;
 
