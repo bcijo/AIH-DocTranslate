@@ -37,7 +37,7 @@ function Availability() {
     if (selectedDoctorData && selectedDoctorData.phoneNumber) {
       const phoneNumber = `+91${selectedDoctorData.phoneNumber}`;
       try {
-        const response = await axios.post('http://127.0.0.1:5000/make-call', { phoneNumber });
+        const response = await axios.post('https://59c65788-e541-451a-a3ce-21cf84812b95-00-1qnb7kob800bc.sisko.replit.dev:5000/api/make-call', { phoneNumber });
         alert(response.data.message);
       } catch (error) {
         console.error('Error initiating call:', error);

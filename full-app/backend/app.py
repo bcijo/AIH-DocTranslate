@@ -154,9 +154,6 @@ def summarize():
 
 @app.route('/api/speak', methods=['POST'])
 def speak():
-    """
-    Endpoint to convert translated text to speech using gTTS and return as an MP3 file.
-    """
     if not request.json or 'text' not in request.json or 'lang' not in request.json:
         return jsonify({'error': 'No text or language provided for speech'}), 400
 
@@ -168,14 +165,13 @@ def speak():
         audio_filename = speak_with_gtts(text, lang)
 
         if audio_filename:
-            # Start audio playback in a separate thread
-            threading.Thread(target=play_audio, args=(audio_filename,), daemon=True).start()
-            return jsonify({'message': 'Audio started playing'})
+            return send_file(audio_filename, mimetype='audio/mp3', as_attachment=True)
 
         return jsonify({'error': 'Failed to generate speech'}), 500
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/stop-speech', methods=['POST'])
 def stop_speech():
