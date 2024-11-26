@@ -172,7 +172,7 @@ function Patient() {
       target = doctorLanguage;
       const translated = await translateText(textToTranslate, target);
       setTranslatedPatientProblem(translated);
-    } else if (step === 2) { 
+    } else if (step === 2) {
       const summarizedText = await handleSummarize(doctorFeedback);
       setDoctorSummary(summarizedText);
       textToTranslate = summarizedText;
@@ -249,6 +249,9 @@ function Patient() {
         PatientCondition: translatedPatientProblem,
         DoctorRecommendation: doctorFeedback,
         MedicationPrescription: medicationPrescription,
+        PatientLanguage: patientLanguage,
+        TranslatedDoctorRecommendation: translatedDoctorFeedback,
+        TranslatedMedicationPrescription: translatedMedicationPrescription,
         VisitDate: new Date().toISOString(),
         VisitType: 'in-person',
       });
@@ -324,7 +327,7 @@ function Patient() {
               )}
               {(step === 2 || step === 3) && (
                 <>
-                 
+
                   <Button onClick={handleTranslate} disabled={loading}>
                     Summarise & Translate
                   </Button>
@@ -585,4 +588,3 @@ const SelectPatientText = styled.div`
 `;
 
 export default Patient;
-
