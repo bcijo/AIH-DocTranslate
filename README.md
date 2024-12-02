@@ -7,6 +7,13 @@ This project consists of two main parts:
 
 Follow the instructions below to clone and run this project locally.
 
+## Features under Development
+
+- Responsive app development.
+- Analytics dashboard for the doctor.
+- Medical History summary for the patient.
+- Doctor availability prediction for the patient.
+
 ## Prerequisites
 
 Make sure you have the following tools installed on your system:
