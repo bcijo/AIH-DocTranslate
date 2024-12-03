@@ -7,6 +7,9 @@ This project consists of two main parts:
 
 Follow the instructions below to clone and run this project locally.
 
+## Video Demo
+Drive Link: https://drive.google.com/file/d/1YV3fY2C7JyClivjrXIGeLhKHoz-RkqbO/view
+
 ## Features under Development
 
 - Responsive app development.
