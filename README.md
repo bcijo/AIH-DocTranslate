@@ -106,5 +106,5 @@ flask run
 This will start the Flask server on `http://127.0.0.1:5000`
 
 ## 4. Access the Application 
-- Frontend: Go to `http://localhost:3000` in your browser to view the React app. 
+- Frontend: Go to `https://doctranslate-refc48ph1-abhin-bs-projects.vercel.app` in your browser to view the React app. 
 - Backend: The Flask server will run on `http://127.0.0.1:5000`.
