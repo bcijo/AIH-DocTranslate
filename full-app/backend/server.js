@@ -7,8 +7,8 @@ const app = express();
 const port = 5000;
 
 // Your Twilio credentials
-const accountSid = 'ACef1c7208b55590f1527cf91a6c3e100a'; // Replace with your Twilio account SID
-const authToken = '63ce01b5a6dfe228101f1a12d2a3ee09';   // Replace with your Twilio auth token
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = twilio(accountSid, authToken);
 
 // Middleware to parse JSON requests
@@ -22,7 +22,7 @@ app.post('/make-call', (req, res) => {
   client.calls.create({
     url: 'http://demo.twilio.com/docs/voice.xml',
     to: phone,
-    from: '+13854744792',  // Your Twilio number
+    from: process.env.TWILIO_PHONE_NUMBER,
   })
   .then(call => {
     console.log(call.sid);
